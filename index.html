@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>赠品策略</title>
+    <link rel="icon" href="favicon.png?v=2" type="image/png" sizes="32x32" />
+    <link rel="icon" href="favicon.svg?v=2" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="favicon.png?v=2" />
+    <link rel="stylesheet" href="styles/main.css?v=20260611a" />
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  </head>
+  <body>
+    <main class="page" id="app">
+      <p>加载中…</p>
+    </main>
+
+    <script>
+      if (new URLSearchParams(location.search).get("embed") === "1") {
+        document.documentElement.classList.add("is-embed");
+      }
+
+      const GIFT_ICONS = {
+        斑马书包: "🎒",
+        语数英点读书: "📖",
+        词典笔: "🖊️",
+        汉语拼音学习机: "🔤",
+        仿真早教机: "📻",
+        小风扇: "🌀",
+        得力地球仪: "🌍",
+        斑马科学绘本: "🔬",
+        恐龙翻翻书: "🦕",
+        太空翻翻书: "🚀",
+      };
+
+      const STORAGE_KEY = "sales-gift-strategy-edits";
+
+      const STATUS_CYCLE = [
+        { status: "upcoming", statusLabel: "即将上线" },
+        { status: "active", statusLabel: "已上线" },
+        { status: "ended", statusLabel: "已结束" },
+      ];
+
+      const SHELF_STATUS_CYCLE = [
+        { shelfStatus: "on_sale", shelfStatusLabel: "上架中" },
+        { shelfStatus: "off_sale", shelfStatusLabel: "已下架" },
+        { shelfStatus: "pending", shelfStatusLabel: "待上架" },
+      ];
+
+      let basePeriods = [];
+      let periods = [];
+      let activeBundleTabId = null;
+      let giftCatalog = [];
+      let previewState = { images: [], index: 0, name: "" };
+      let shelfOverrides = {};
+      let serverEdits = {};
+      let shelfPollTimer = null;
+      let currentPeriodId = null;
+
+      function parseRule(rule) {
+        const m = String(rule).match(/(\d+)选(\d+)/);
+        if (!m) return { total: 0, pick: 0 };
+        return { total: Number(m[1]), pick: Number(m[2]) };
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function plainText(value) {
+        if (value == null) return "";
+        const str = String(value);
+        if (!/[<&]/.test(str)) return str;
+        const div = document.createElement("div");
+        div.innerHTML = str;
+        return (div.innerText || div.textContent || "").replace(/\u00a0/g, " ").trim();
+      }
+
+      function sanitizePeriod(period) {
+        if (!period || typeof period !== "object") return period;
+        if (period.summary) period.summary = plainText(period.summary);
+        if (period.subtitle) period.subtitle = plainText(period.subtitle);
+        for (const bundle of period.bundles || []) {
+          if (bundle.name) bundle.name = plainText(bundle.name);
+          if (bundle.salesScript != null) {
+            bundle.salesScript = plainText(bundle.salesScript);
+          }
+          for (const gift of bundle.gifts || []) {
+            if (gift.sellingPoints) {
+              gift.sellingPoints = gift.sellingPoints.map(plainText);
+            }
+          }
+        }
+        return period;
+      }
+
+      function restoreMissingSalesScripts(basePeriod, mergedPeriod) {
+        let fixed = false;
+        for (const bundle of mergedPeriod.bundles || []) {
+          const baseBundle = (basePeriod.bundles || []).find((b) => b.id === bundle.id);
+          if (!String(baseBundle?.salesScript || "").trim()) continue;
+          const emptyScript = !String(bundle.salesScript || "").trim();
+          const hidden = bundle.showSalesScript === false;
+          if (!emptyScript && !hidden) continue;
+          if (emptyScript) bundle.salesScript = baseBundle.salesScript;
+          if (hidden) bundle.showSalesScript = true;
+          fixed = true;
+        }
+        return fixed;
+      }
+
+      function getBundleSalesScript(periodId, bundle) {
+        const current = String(bundle.salesScript || "").trim();
+        if (current) return bundle.salesScript;
+        const baseBundle = basePeriods
+          .find((p) => p.id === periodId)
+          ?.bundles?.find((b) => b.id === bundle.id);
+        return baseBundle?.salesScript || "";
+      }
+
+      function loadEdits() {
+        return serverEdits;
+      }
+
+      function stripShelfFromPeriod(period) {
+        const clone = structuredClone(period);
+        for (const bundle of clone.bundles || []) {
+          for (const gift of bundle.gifts || []) {
+            delete gift.shelfStatus;
+            delete gift.shelfStatusLabel;
+          }
+        }
+        return clone;
+      }
+
+      async function loadPeriodEdits() {
+        try {
+          const res = await fetch("/api/period-edits", { cache: "no-store" });
+          if (!res.ok) return false;
+          const data = await res.json();
+          serverEdits = data.edits && typeof data.edits === "object" ? data.edits : {};
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      async function saveEditsToServer(edits) {
+        const res = await fetch("/api/period-edits", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({ edits }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "文案保存失败");
+        serverEdits = data.edits || edits;
+      }
+
+      async function savePeriodEdit(period) {
+        const payload = stripShelfFromPeriod(sanitizePeriod(structuredClone(period)));
+        const res = await fetch("/api/period-edits", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({ periodId: period.id, period: payload }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "文案保存失败");
+        serverEdits = data.edits || serverEdits;
+        serverEdits[period.id] = payload;
+      }
+
+      function saveEdits(edits) {
+        serverEdits = edits;
+        saveEditsToServer(edits).catch((err) => {
+          console.warn("文案同步失败", err);
+        });
+      }
+
+      async function migrateLocalEditsIfNeeded() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const local = JSON.parse(raw);
+          if (!local || typeof local !== "object" || !Object.keys(local).length) return;
+          if (Object.keys(serverEdits).length) return;
+          await saveEditsToServer(local);
+          localStorage.removeItem(STORAGE_KEY);
+        } catch {
+          /* ignore */
+        }
+      }
+
+      function mergePeriods() {
+        const edits = { ...serverEdits };
+        let dirty = false;
+        for (const id of Object.keys(edits)) {
+          if (id.endsWith("__meta")) continue;
+          const cleaned = sanitizePeriod(edits[id]);
+          if (JSON.stringify(cleaned) !== JSON.stringify(edits[id])) {
+            edits[id] = cleaned;
+            dirty = true;
+          }
+        }
+        if (dirty) {
+          serverEdits = edits;
+          saveEdits(edits);
+        }
+
+        periods = basePeriods.map((p) => {
+          const overlay = serverEdits[p.id];
+          if (!overlay) return structuredClone(p);
+          const merged = sanitizePeriod(deepMerge(structuredClone(p), overlay));
+          if (restoreMissingSalesScripts(p, merged)) {
+            serverEdits[p.id] = merged;
+            dirty = true;
+          }
+          return merged;
+        });
+        if (dirty) saveEdits(serverEdits);
+        applyShelfOverridesToPeriods();
+      }
+
+      async function loadShelfOverrides() {
+        try {
+          const res = await fetch("/api/gift-shelf-status", { cache: "no-store" });
+          if (!res.ok) return false;
+          shelfOverrides = await res.json();
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      function applyShelfOverridesToPeriods() {
+        for (const period of periods) {
+          const periodOverrides = shelfOverrides?.[period.id] || {};
+          for (const bundle of period.bundles || []) {
+            const bundleOverrides = periodOverrides[bundle.id] || {};
+            for (const gift of bundle.gifts || []) {
+              const override = bundleOverrides[gift.name];
+              if (override?.shelfStatus) {
+                gift.shelfStatus = override.shelfStatus;
+                gift.shelfStatusLabel = override.shelfStatusLabel;
+              } else {
+                delete gift.shelfStatus;
+                delete gift.shelfStatusLabel;
+              }
+            }
+          }
+        }
+      }
+
+      async function saveGiftShelfStatus(periodId, bundleId, giftName, shelfStatus, shelfStatusLabel) {
+        const res = await fetch("/api/gift-shelf-status", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({ periodId, bundleId, giftName, shelfStatus, shelfStatusLabel }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "上架状态保存失败");
+        shelfOverrides = data.overrides || {};
+      }
+
+      async function syncFromServer(forceRemount) {
+        const prevEdits = JSON.stringify(serverEdits);
+        const prevShelf = JSON.stringify(shelfOverrides);
+        await Promise.all([loadPeriodEdits(), loadShelfOverrides()]);
+        if (
+          JSON.stringify(serverEdits) === prevEdits &&
+          JSON.stringify(shelfOverrides) === prevShelf &&
+          !forceRemount
+        ) {
+          return;
+        }
+        mergePeriods();
+        if (currentPeriodId) mount(currentPeriodId);
+      }
+
+      function startRemoteSync(periodId) {
+        currentPeriodId = periodId;
+        if (shelfPollTimer) clearInterval(shelfPollTimer);
+        shelfPollTimer = setInterval(() => syncFromServer(false), 15000);
+      }
+
+      function mergeBundles(baseBundles, overlayBundles) {
+        if (!overlayBundles?.length) return structuredClone(baseBundles || []);
+        const mergedById = new Map(
+          (baseBundles || []).map((bundle) => [bundle.id, structuredClone(bundle)])
+        );
+        for (const overlayBundle of overlayBundles) {
+          const baseBundle = mergedById.get(overlayBundle.id);
+          mergedById.set(
+            overlayBundle.id,
+            baseBundle ? deepMerge(baseBundle, overlayBundle) : overlayBundle
+          );
+        }
+        const order = (baseBundles || []).map((bundle) => bundle.id);
+        return order.map((id) => mergedById.get(id)).filter(Boolean);
+      }
+
+      function deepMerge(target, source) {
+        for (const key of Object.keys(source)) {
+          if (key === "bundles" && Array.isArray(source.bundles) && Array.isArray(target.bundles)) {
+            target.bundles = mergeBundles(target.bundles, source.bundles);
+            continue;
+          }
+          if (Array.isArray(source[key])) {
+            target[key] = source[key];
+          } else if (source[key] && typeof source[key] === "object") {
+            target[key] = deepMerge(target[key] || {}, source[key]);
+          } else {
+            target[key] = source[key];
+          }
+        }
+        return target;
+      }
+
+      async function persistPeriod(period) {
+        try {
+          await savePeriodEdit(period);
+          mergePeriods();
+        } catch (err) {
+          window.alert(err.message || "保存失败，请重试");
+          await loadPeriodEdits();
+          mergePeriods();
+        }
+      }
+
+      function getPeriodFromUrl() {
+        return new URLSearchParams(location.search).get("period");
+      }
+
+      function statusClass(status) {
+        if (status === "active") return "status-active";
+        if (status === "upcoming") return "status-upcoming";
+        return "status-ended";
+      }
+
+      function cyclePeriodStatus(period) {
+        const idx = STATUS_CYCLE.findIndex((item) => item.status === period.status);
+        const next = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+        period.status = next.status;
+        period.statusLabel = next.statusLabel;
+      }
+
+      function resolveGiftShelfStatus(gift, period) {
+        if (gift.shelfStatus) {
+          return (
+            SHELF_STATUS_CYCLE.find((item) => item.shelfStatus === gift.shelfStatus) ||
+            SHELF_STATUS_CYCLE[0]
+          );
+        }
+        if (period.status === "active") return SHELF_STATUS_CYCLE[0];
+        if (period.status === "upcoming") return SHELF_STATUS_CYCLE[2];
+        return SHELF_STATUS_CYCLE[1];
+      }
+
+      function shelfStatusClass(shelfStatus) {
+        if (shelfStatus === "on_sale") return "shelf-on-sale";
+        if (shelfStatus === "pending") return "shelf-pending";
+        return "shelf-off-sale";
+      }
+
+      function cycleGiftShelfStatus(gift, period) {
+        const current = resolveGiftShelfStatus(gift, period);
+        const idx = SHELF_STATUS_CYCLE.findIndex((item) => item.shelfStatus === current.shelfStatus);
+        const next = SHELF_STATUS_CYCLE[(idx + 1) % SHELF_STATUS_CYCLE.length];
+        gift.shelfStatus = next.shelfStatus;
+        gift.shelfStatusLabel = next.shelfStatusLabel;
+      }
+
+      function formatItems(names) {
+        if (names.length === 0) return "";
+        if (names.length === 1) return names[0];
+        if (names.length === 2) return `${names[0]}和${names[1]}`;
+        return `${names.slice(0, -1).join("、")}和${names.at(-1)}`;
+      }
+
+      function syncSalesScript(bundle, oldName) {
+        const names = bundle.recommended || [];
+        const items = formatItems(names);
+        const current = bundle.salesScript || "";
+        if (oldName && current.includes(`「${oldName}」`)) {
+          bundle.salesScript = current.replaceAll(`「${oldName}」`, `「${bundle.name}」`);
+          return;
+        }
+        if (current.includes("\n") || current.length > 100) {
+          return;
+        }
+        if (!current.includes("「")) {
+          const pick = parseRule(bundle.rule).pick;
+          if (pick === 1) {
+            bundle.salesScript = `这档「${bundle.name}」我给您推${items}。`;
+          } else {
+            bundle.salesScript = `这档「${bundle.name}」建议选${items}。`;
+          }
+        }
+      }
+
+      function renderPeriodSelect(currentId) {
+        return `
+          <select class="period-select" id="period-select" aria-label="切换期次">
+            ${periods
+              .map(
+                (p) =>
+                  `<option value="${p.id}" ${p.id === currentId ? "selected" : ""}>${p.title}（${p.statusLabel}）</option>`
+              )
+              .join("")}
+          </select>`;
+      }
+
+      function isRecommended(bundle, giftName) {
+        return (bundle.recommended || []).includes(giftName);
+      }
+
+      function parseIncludeLabel(item) {
+        return String(item)
+          .replace(/\s*×\d+\s*$/, "")
+          .replace(/[《》【】\[\]]/g, "")
+          .trim();
+      }
+
+      /** 礼包内子品有独立素材目录时才尝试加载清单缩略图 */
+      const GIFT_INCLUDE_THUMB_PARENTS = new Set(["艺术大礼包", "绘本大礼包"]);
+
+      function getIncludeImageSrc(periodId, parentGiftName, itemLabel) {
+        if (!GIFT_INCLUDE_THUMB_PARENTS.has(parentGiftName)) return "";
+        const subName = parseIncludeLabel(itemLabel);
+        if (!subName || !parentGiftName) return "";
+        return `assets/${periodId}/${parentGiftName}/${subName}/${subName}-01.jpg`;
+      }
+
+      function resolveGiftIncludes(gift, periodId, bundleId) {
+        const items = gift.includes;
+        if (Array.isArray(items) && items.length) return items;
+        if (typeof items === "string" && items.trim()) return [items];
+        const baseGift = basePeriods
+          .find((p) => p.id === periodId)
+          ?.bundles?.find((b) => b.id === bundleId)
+          ?.gifts?.find((g) => g.name === gift.name);
+        const baseItems = baseGift?.includes;
+        if (Array.isArray(baseItems) && baseItems.length) return baseItems;
+        if (typeof baseItems === "string" && baseItems.trim()) return [baseItems];
+        return [];
+      }
+
+      function renderGiftIncludes(gift, periodId, bundleId) {
+        const listItems = resolveGiftIncludes(gift, periodId, bundleId);
+        if (!listItems.length) return "";
+
+        return `
+              <div class="gift-includes-block">
+                <p class="gift-includes-label">礼品清单</p>
+                <ul class="gift-includes-list">
+                  ${listItems
+                    .map((item) => {
+                      const imgSrc = getIncludeImageSrc(periodId, gift.name, item);
+                      const dataAttr = imgSrc
+                        ? ` data-include-img="${escapeHtml(imgSrc)}"`
+                        : "";
+                      return `<li class="gift-include-item"${dataAttr}><span>${escapeHtml(item)}</span></li>`;
+                    })
+                    .join("")}
+                </ul>
+              </div>`;
+      }
+
+      async function hydrateIncludeThumbs() {
+        const items = document.querySelectorAll(".gift-include-item[data-include-img]");
+        await Promise.all(
+          [...items].map(async (li) => {
+            const url = li.dataset.includeImg;
+            if (!url) return;
+            try {
+              const res = await fetch(url, { method: "HEAD", cache: "no-store" });
+              if (!res.ok) return;
+              const img = document.createElement("img");
+              img.className = "gift-include-thumb";
+              img.src = url;
+              img.alt = "";
+              img.loading = "lazy";
+              li.prepend(img);
+            } catch {
+              /* 无素材则只显示文字 */
+            }
+          })
+        );
+      }
+
+      function renderGiftCard(gift, highlighted, periodId, bundleId, period) {
+        const icon = GIFT_ICONS[gift.name] || "🎁";
+        const imgHtml = gift.image
+          ? `<img src="${gift.image}" alt="${gift.name}" />`
+          : icon;
+        const shelf = resolveGiftShelfStatus(gift, period);
+
+        return `
+          <article class="gift-card ${highlighted ? "gift-card-push" : ""}">
+            <span
+              class="gift-shelf-badge ${shelfStatusClass(shelf.shelfStatus)}"
+              data-edit="gift-shelf-status"
+              data-period-id="${periodId}"
+              data-bundle-id="${bundleId}"
+              data-gift-name="${gift.name}"
+              title="三击切换上架状态"
+            >${shelf.shelfStatusLabel}</span>
+            <div class="gift-image">${imgHtml}</div>
+            <div class="gift-body">
+              <h3>
+                ${gift.name}
+                ${gift.isNew ? '<span class="tag-new">新</span>' : ""}
+                ${highlighted ? '<span class="tag-push">主推</span>' : ""}
+              </h3>
+              <ul class="selling-points">
+                ${gift.sellingPoints
+                  .map(
+                    (s, i) => `
+                <li
+                  class="ops-editable"
+                  spellcheck="false"
+                  data-edit="selling-point"
+                  data-period-id="${periodId}"
+                  data-bundle-id="${bundleId}"
+                  data-gift-name="${gift.name}"
+                  data-point-index="${i}"
+                >${escapeHtml(s)}</li>`
+                  )
+                  .join("")}
+              </ul>
+              ${renderGiftIncludes(gift, periodId, bundleId)}
+            </div>
+          </article>`;
+      }
+
+      function sortGiftsByRecommended(bundle) {
+        const order = new Map((bundle.recommended || []).map((name, i) => [name, i]));
+        return [...bundle.gifts].sort((a, b) => {
+          const aPush = order.has(a.name);
+          const bPush = order.has(b.name);
+          if (aPush && bPush) return order.get(a.name) - order.get(b.name);
+          if (aPush) return -1;
+          if (bPush) return 1;
+          return bundle.gifts.indexOf(a) - bundle.gifts.indexOf(b);
+        });
+      }
+
+      function renderBundle(bundle, period) {
+        const periodId = period.id;
+        const salesScript = getBundleSalesScript(periodId, bundle);
+        const showScript = Boolean(String(salesScript).trim());
+
+        return `
+            <div class="bundle-header">
+              <h2
+                class="ops-editable"
+                spellcheck="false"
+                data-edit="bundle-name"
+                data-period-id="${periodId}"
+                data-bundle-id="${bundle.id}"
+              >${escapeHtml(bundle.name)}</h2>
+              <span class="bundle-rule">${bundle.rule}</span>
+            </div>
+
+            ${
+              showScript
+                ? `<div
+              class="bundle-sales-script ops-editable"
+              spellcheck="false"
+              data-edit="bundle-script"
+              data-period-id="${periodId}"
+              data-bundle-id="${bundle.id}"
+            >${escapeHtml(salesScript)}</div>`
+                : ""
+            }
+
+            ${sortGiftsByRecommended(bundle)
+              .map((g) =>
+                renderGiftCard(g, isRecommended(bundle, g.name), periodId, bundle.id, period)
+              )
+              .join("")}`;
+      }
+
+      function renderBundlesArea(period) {
+        if (!period.bundles?.length) {
+          return `<div class="empty-state">暂无赠品明细</div>`;
+        }
+
+        if (period.bundles.length === 1) {
+          return `
+          <div class="bundle-tabs-wrap bundle-tabs-wrap-single">
+            <div class="bundle-panels">
+              <section class="bundle-panel is-active">${renderBundle(period.bundles[0], period)}</section>
+            </div>
+          </div>`;
+        }
+
+        const activeId =
+          activeBundleTabId && period.bundles.some((b) => b.id === activeBundleTabId)
+            ? activeBundleTabId
+            : period.bundles[0].id;
+
+        return `
+          <div class="bundle-tabs-wrap">
+            <div class="bundle-tabs" role="tablist" aria-label="礼包切换">
+              ${period.bundles
+                .map(
+                  (b) => `
+                <button
+                  type="button"
+                  role="tab"
+                  class="bundle-tab ${b.id === activeId ? "is-active" : ""}"
+                  data-bundle-tab="${b.id}"
+                  aria-selected="${b.id === activeId ? "true" : "false"}"
+                >${b.name}</button>`
+                )
+                .join("")}
+            </div>
+            <div class="bundle-panels">
+              ${period.bundles
+                .map(
+                  (b) => `
+                <section
+                  class="bundle-panel ${b.id === activeId ? "is-active" : ""}"
+                  data-bundle-panel="${b.id}"
+                  role="tabpanel"
+                >${renderBundle(b, period)}</section>`
+                )
+                .join("")}
+            </div>
+          </div>`;
+      }
+
+      function renderPeriod(period) {
+        const bundlesHtml = renderBundlesArea(period);
+
+        return `
+          <header class="header">
+            <div class="header-top">
+              <div>
+                <h1>${period.title}</h1>
+                <p
+                  class="subtitle ops-editable"
+                  spellcheck="false"
+                  data-edit="header-subline"
+                  data-period-id="${period.id}"
+                >${escapeHtml(period.subtitle)}</p>
+              </div>
+              <span
+                class="status ${statusClass(period.status)} ops-status-editable"
+                data-edit="period-status"
+                data-period-id="${period.id}"
+              >${period.statusLabel}</span>
+            </div>
+            ${renderPeriodSelect(period.id)}
+            <div class="header-actions">
+              <button type="button" class="download-images-btn" id="download-images-btn">
+                下载全部图片
+              </button>
+              <button type="button" class="search-gifts-btn" id="search-gifts-btn">
+                搜索赠品
+              </button>
+              ${
+                period.id === "2026-618"
+                  ? `<button type="button" class="search-gifts-btn" id="sales-guide-btn">活动说明</button>`
+                  : ""
+              }
+            </div>
+          </header>
+
+          <section class="summary-card">
+            <h2>策略介绍 · 说给家长</h2>
+            <div
+              class="summary-body ops-editable"
+              spellcheck="false"
+              data-edit="summary"
+              data-period-id="${period.id}"
+            >${escapeHtml(period.summary)}</div>
+          </section>
+
+          ${bundlesHtml}
+          ${renderOpsHiddenFooter()}`;
+      }
+
+      function renderOpsHiddenFooter() {
+        return `
+          <footer class="ops-hidden-footer">
+            <span class="ops-hidden-dots" id="ops-hidden-dots">···</span>
+            <div class="ops-hidden-menu" id="ops-hidden-menu" hidden>
+              <button type="button" data-ops-download="skill">下载 Cursor Skill</button>
+            </div>
+          </footer>`;
+      }
+
+      async function downloadBlob(blob, filename) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      async function downloadOpsSkillZip() {
+        if (typeof JSZip === "undefined") {
+          window.alert("打包组件未加载，请刷新页面后重试。");
+          return;
+        }
+        const skillRes = await fetch("ops-pack/sales-gift-strategy-ops/SKILL.md");
+        if (!skillRes.ok) {
+          window.alert("下载失败，请确认已部署 ops-pack 目录。");
+          return;
+        }
+        const zip = new JSZip();
+        zip.folder("sales-gift-strategy-ops").file("SKILL.md", await skillRes.text());
+        await downloadBlob(await zip.generateAsync({ type: "blob" }), "sales-gift-strategy-ops.zip");
+      }
+
+      function bindOpsHiddenFooter() {
+        const dots = document.getElementById("ops-hidden-dots");
+        const menu = document.getElementById("ops-hidden-menu");
+        if (!dots || !menu) return;
+
+        bindTripleClickEdit(dots, () => {
+          menu.hidden = !menu.hidden;
+        });
+
+        menu.querySelectorAll("[data-ops-download]").forEach((btn) => {
+          btn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            if (btn.dataset.opsDownload === "skill") await downloadOpsSkillZip();
+            menu.hidden = true;
+          });
+        });
+
+        document.addEventListener("click", (e) => {
+          if (menu.hidden) return;
+          if (dots.contains(e.target) || menu.contains(e.target)) return;
+          menu.hidden = true;
+        });
+      }
+
+      function findBundle(periodId, bundleId) {
+        const period = periods.find((p) => p.id === periodId);
+        return period?.bundles?.find((b) => b.id === bundleId);
+      }
+
+      function findGift(bundle, giftName) {
+        return bundle.gifts.find((g) => g.name === giftName);
+      }
+
+      function bindTripleClickEdit(el, onActivate) {
+        let clicks = 0;
+        let timer = null;
+
+        el.addEventListener("click", (e) => {
+          if (el.contentEditable === "true") return;
+
+          clicks += 1;
+          if (clicks === 1) {
+            timer = window.setTimeout(() => {
+              clicks = 0;
+            }, 450);
+          }
+
+          if (clicks >= 3) {
+            window.clearTimeout(timer);
+            clicks = 0;
+            e.preventDefault();
+            onActivate();
+          }
+        });
+      }
+
+      function bindEditors() {
+        document.querySelectorAll("[data-edit]:not([data-edit='period-status']):not([data-edit='gift-shelf-status'])").forEach((el) => {
+          el.setAttribute("contenteditable", "false");
+
+          bindTripleClickEdit(el, () => {
+            el.textContent = plainText(el.innerHTML);
+            el.contentEditable = "true";
+            el.classList.add("is-editing");
+            el.focus();
+          });
+
+          el.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const text = e.clipboardData.getData("text/plain");
+            document.execCommand("insertText", false, text);
+          });
+
+          el.addEventListener("blur", async () => {
+            el.contentEditable = "false";
+            el.classList.remove("is-editing");
+            await saveEdit(el);
+          });
+        });
+
+        document.querySelectorAll('[data-edit="period-status"]').forEach((el) => {
+          bindTripleClickEdit(el, async () => {
+            const periodId = el.dataset.periodId;
+            const period = periods.find((p) => p.id === periodId);
+            if (!period) return;
+            cyclePeriodStatus(period);
+            try {
+              await savePeriodEdit(period);
+              mergePeriods();
+              mount(periodId);
+            } catch (err) {
+              window.alert(err.message || "保存失败，请重试");
+              await loadPeriodEdits();
+              mergePeriods();
+              mount(periodId);
+            }
+          });
+        });
+
+        document.querySelectorAll('[data-edit="gift-shelf-status"]').forEach((el) => {
+          bindTripleClickEdit(el, async () => {
+            const periodId = el.dataset.periodId;
+            const period = periods.find((p) => p.id === periodId);
+            const bundle = findBundle(periodId, el.dataset.bundleId);
+            const gift = findGift(bundle, el.dataset.giftName);
+            if (!period || !gift || !bundle) return;
+            cycleGiftShelfStatus(gift, period);
+            const shelf = resolveGiftShelfStatus(gift, period);
+            try {
+              await saveGiftShelfStatus(
+                periodId,
+                bundle.id,
+                gift.name,
+                shelf.shelfStatus,
+                shelf.shelfStatusLabel
+              );
+              mergePeriods();
+              mount(periodId);
+            } catch (err) {
+              window.alert(err.message || "上架状态保存失败，请重试");
+              await loadShelfOverrides();
+              mergePeriods();
+              mount(periodId);
+            }
+          });
+        });
+      }
+
+      function bindBundleTabs() {
+        document.querySelectorAll("[data-bundle-tab]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.dataset.bundleTab;
+            activeBundleTabId = id;
+            document.querySelectorAll("[data-bundle-tab]").forEach((tab) => {
+              const active = tab.dataset.bundleTab === id;
+              tab.classList.toggle("is-active", active);
+              tab.setAttribute("aria-selected", active ? "true" : "false");
+            });
+            document.querySelectorAll("[data-bundle-panel]").forEach((panel) => {
+              panel.classList.toggle("is-active", panel.dataset.bundlePanel === id);
+            });
+          });
+        });
+      }
+
+      function getActivePeriod() {
+        mergePeriods();
+        const periodId =
+          getPeriodFromUrl() ||
+          periods.find((p) => p.status === "upcoming" || p.status === "active")?.id ||
+          periods[0]?.id;
+        return periods.find((p) => p.id === periodId) || periods[0];
+      }
+
+      async function resolveGiftImageUrl(gift, periodId) {
+        if (gift.image) return gift.image;
+        const base = `assets/${periodId}/${gift.name}`;
+        for (const ext of [".jpg", ".jpeg", ".png", ".webp"]) {
+          const url = `${base}${ext}`;
+          try {
+            const res = await fetch(url, { method: "HEAD" });
+            if (res.ok) return url;
+          } catch {
+            /* try next extension */
+          }
+        }
+        return null;
+      }
+
+      const ASSET_EXT = /\.(jpe?g|png|webp|gif|mp4|mov)$/i;
+
+      async function crawlPeriodAssets(periodId, subPath = "") {
+        const dirUrl = `assets/${periodId}/${subPath}`;
+        const res = await fetch(dirUrl);
+        if (!res.ok) return [];
+
+        const html = await res.text();
+        if (!html.includes("Directory listing for")) return [];
+
+        const hrefs = [...html.matchAll(/<a href="([^"]+)">/g)].map((m) => m[1]);
+        const files = [];
+
+        for (const href of hrefs) {
+          const decodedHref = decodeURIComponent(href);
+          if (
+            href === "../" ||
+            href.endsWith(".md") ||
+            decodedHref === ".DS_Store" ||
+            decodedHref.startsWith("._")
+          ) {
+            continue;
+          }
+
+          if (href.endsWith("/")) {
+            const dirName = decodeURIComponent(href.replace(/\/$/, ""));
+            if (dirName === "_backup" || dirName.startsWith("_backup") || dirName === "_tmp") continue;
+            files.push(...(await crawlPeriodAssets(periodId, subPath + href)));
+            continue;
+          }
+
+          if (ASSET_EXT.test(href)) {
+            files.push({
+              url: `${dirUrl}${href}`,
+              zipPath: decodeURIComponent(`${subPath}${href}`),
+            });
+          }
+        }
+
+        return files;
+      }
+
+      function hasGiftImage(entry) {
+        return Boolean(String(entry?.image || "").trim());
+      }
+
+      function comparePeriodId(a, b) {
+        return String(a).localeCompare(String(b));
+      }
+
+      function shouldReplaceCatalogEntry(existing, candidate) {
+        const existingHas = hasGiftImage(existing);
+        const candidateHas = hasGiftImage(candidate);
+        if (candidateHas && !existingHas) return true;
+        if (existingHas && !candidateHas) return false;
+        return comparePeriodId(candidate.periodId, existing.periodId) > 0;
+      }
+
+      function buildGiftCatalog() {
+        mergePeriods();
+        const map = new Map();
+
+        for (const period of periods) {
+          for (const bundle of period.bundles || []) {
+            for (const gift of bundle.gifts || []) {
+              if (!gift?.name) continue;
+              const entry = {
+                name: gift.name,
+                periodId: period.id,
+                periodTitle: period.title,
+                image: gift.image || "",
+              };
+              const existing = map.get(gift.name);
+              if (!existing || shouldReplaceCatalogEntry(existing, entry)) {
+                map.set(gift.name, entry);
+              }
+
+              for (const item of resolveGiftIncludes(gift, period.id, bundle.id)) {
+                const subName = parseIncludeLabel(item);
+                if (!subName) continue;
+                const subEntry = {
+                  name: subName,
+                  periodId: period.id,
+                  periodTitle: period.title,
+                  image: getIncludeImageSrc(period.id, gift.name, item),
+                  parentGift: gift.name,
+                };
+                const subExisting = map.get(subName);
+                if (!subExisting || shouldReplaceCatalogEntry(subExisting, subEntry)) {
+                  map.set(subName, subEntry);
+                }
+              }
+            }
+          }
+        }
+
+        giftCatalog = [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
+        return giftCatalog;
+      }
+
+      function fuzzyMatchGiftName(name, query) {
+        const q = query.trim().toLowerCase();
+        if (!q) return true;
+        const n = String(name).toLowerCase();
+        if (n.includes(q)) return true;
+        let matched = 0;
+        for (let i = 0; i < n.length && matched < q.length; i++) {
+          if (n[i] === q[matched]) matched += 1;
+        }
+        return matched === q.length;
+      }
+
+      function searchGiftCatalog(query) {
+        return buildGiftCatalog().filter((entry) => fuzzyMatchGiftName(entry.name, query));
+      }
+
+      async function crawlGiftAssets(entry) {
+        const { periodId, name, image, parentGift } = entry;
+        if (parentGift) {
+          const fromSub = await crawlPeriodAssets(periodId, `${parentGift}/${name}/`);
+          if (fromSub.length) return fromSub;
+        }
+        const fromFolder = await crawlPeriodAssets(periodId, `${name}/`);
+        if (fromFolder.length) return fromFolder;
+
+        const files = [];
+        const seen = new Set();
+
+        function addFile(url, zipPath) {
+          if (!url || seen.has(url)) return;
+          seen.add(url);
+          files.push({ url, zipPath });
+        }
+
+        if (image) {
+          addFile(image, image.split("/").pop());
+        }
+
+        for (const ext of [".jpg", ".jpeg", ".png", ".webp"]) {
+          const url = `assets/${periodId}/${name}${ext}`;
+          try {
+            const res = await fetch(url, { method: "HEAD" });
+            if (res.ok) addFile(url, `${name}${ext}`);
+          } catch {
+            /* try next */
+          }
+        }
+
+        return files;
+      }
+
+      async function getGiftPreviewImages(entry) {
+        const assets = await crawlGiftAssets(entry);
+        const imageUrls = assets
+          .filter((item) => /\.(jpe?g|png|webp|gif)$/i.test(item.url))
+          .map((item) => item.url);
+
+        const unique = [...new Set(imageUrls)];
+        if (!unique.length && entry.image) return [entry.image];
+
+        if (entry.image) {
+          const rest = unique.filter((url) => url !== entry.image);
+          return [entry.image, ...rest];
+        }
+
+        return unique;
+      }
+
+      function renderSearchResultCard(entry) {
+        const icon = GIFT_ICONS[entry.name] || "🎁";
+        const imgHtml = entry.image
+          ? `<img src="${entry.image}" alt="${escapeHtml(entry.name)}" />`
+          : icon;
+
+        return `
+          <article class="search-result-card" data-gift-name="${escapeHtml(entry.name)}">
+            <div class="gift-image">${imgHtml}</div>
+            <div class="search-result-body">
+              <h3>${escapeHtml(entry.name)}</h3>
+              <p class="search-result-meta">最近出现：${escapeHtml(entry.periodTitle)}</p>
+              <div class="search-result-actions">
+                <button type="button" class="btn-preview" data-action="preview">预览</button>
+                <button type="button" class="btn-primary btn-download" data-action="download">下载素材包</button>
+              </div>
+            </div>
+          </article>`;
+      }
+
+      function renderSearchResults(results, query) {
+        const container = document.getElementById("gift-search-results");
+        if (!container) return;
+
+        if (!query.trim()) {
+          container.innerHTML =
+            '<p class="gift-search-hint">输入赠品名称搜索，支持模糊匹配（如「书包」「拼音机」→ 汉语拼音学习机）</p>';
+          return;
+        }
+
+        if (!results.length) {
+          container.innerHTML = `<p class="gift-search-empty">没有找到「${escapeHtml(query.trim())}」相关赠品</p>`;
+          return;
+        }
+
+        container.innerHTML = results.map(renderSearchResultCard).join("");
+      }
+
+      function ensureSearchModals() {
+        if (document.getElementById("gift-search-modal")) return;
+
+        document.body.insertAdjacentHTML(
+          "beforeend",
+          `
+          <div id="gift-search-modal" class="gift-search-modal" hidden>
+            <div class="gift-search-backdrop" id="gift-search-backdrop"></div>
+            <div class="gift-search-panel">
+              <div class="gift-search-header">
+                <button type="button" class="gift-search-back-btn" id="gift-search-close">← 返回</button>
+                <div class="gift-search-input-wrap">
+                  <input type="search" id="gift-search-input" placeholder="搜索赠品名称…" autocomplete="off" />
+                  <button type="button" class="gift-search-clear-btn" id="gift-search-clear" hidden aria-label="清空">✕</button>
+                </div>
+              </div>
+              <div class="gift-search-results" id="gift-search-results">
+                <p class="gift-search-hint">输入赠品名称搜索，支持模糊匹配（如「书包」「拼音机」→ 汉语拼音学习机）</p>
+              </div>
+            </div>
+          </div>
+          <div id="gift-preview-modal" class="gift-preview-modal" hidden>
+            <div class="gift-preview-backdrop" id="gift-preview-backdrop"></div>
+            <div class="gift-preview-panel">
+              <div class="gift-preview-header">
+                <h3 id="gift-preview-title">预览</h3>
+                <button type="button" class="gift-preview-close" id="gift-preview-close" aria-label="关闭">×</button>
+              </div>
+              <div class="gift-preview-main" id="gift-preview-main"></div>
+              <div class="gift-preview-nav">
+                <button type="button" id="gift-preview-prev">上一张</button>
+                <span class="gift-preview-counter" id="gift-preview-counter"></span>
+                <button type="button" id="gift-preview-next">下一张</button>
+              </div>
+            </div>
+          </div>
+          <div id="sales-guide-modal" class="sales-guide-modal" hidden>
+            <div class="sales-guide-backdrop" id="sales-guide-backdrop"></div>
+            <div class="sales-guide-panel">
+              <div class="sales-guide-header">
+                <button type="button" class="gift-search-back-btn" id="sales-guide-close">← 返回</button>
+                <h2 class="sales-guide-title">618限定加赠说明</h2>
+              </div>
+              <div class="sales-guide-body" id="sales-guide-body"></div>
+            </div>
+          </div>`
+        );
+
+        bindSearchModalEvents();
+        bindSalesGuideModalEvents();
+      }
+
+      const SALES_GUIDE_DOCS = {
+        "2026-618": "docs/618活动销售说明.md",
+      };
+      /** 活动说明内容更新后改此版本，避免浏览器缓存旧 md */
+      const SALES_GUIDE_REV = "20260604-3";
+
+      async function openSalesGuideModal(periodId) {
+        const path = SALES_GUIDE_DOCS[periodId];
+        if (!path) return;
+
+        ensureSearchModals();
+        const modal = document.getElementById("sales-guide-modal");
+        const body = document.getElementById("sales-guide-body");
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
+        body.innerHTML = '<p class="gift-search-hint">加载中…</p>';
+
+        try {
+          const res = await fetch(`${path}?v=${SALES_GUIDE_REV}`, { cache: "no-store" });
+          if (!res.ok) throw new Error("fetch failed");
+          const md = await res.text();
+          if (typeof marked !== "undefined") {
+            marked.setOptions({ breaks: true, gfm: true });
+            body.innerHTML = `<div class="sales-guide-prose">${marked.parse(md)}</div>`;
+          } else {
+            body.innerHTML = `<pre class="sales-guide-fallback">${escapeHtml(md)}</pre>`;
+          }
+          body.querySelectorAll('.sales-guide-prose a[href^="http"]').forEach((a) => {
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+          });
+          body.querySelectorAll(".sales-guide-prose img").forEach((img) => {
+            const src = img.getAttribute("src");
+            if (!src || src.startsWith("http") || src.includes("?v=")) return;
+            img.src = `${src}${src.includes("?") ? "&" : "?"}v=${SALES_GUIDE_REV}`;
+          });
+        } catch {
+          body.innerHTML = '<p class="gift-search-empty">活动说明加载失败，请刷新后重试。</p>';
+        }
+      }
+
+      function closeSalesGuideModal() {
+        const modal = document.getElementById("sales-guide-modal");
+        if (!modal || modal.hidden) return;
+        modal.hidden = true;
+        document.body.style.overflow = "";
+      }
+
+      function bindSalesGuideModalEvents() {
+        if (document.body.dataset.salesGuideModalBound === "1") return;
+        document.body.dataset.salesGuideModalBound = "1";
+
+        document.getElementById("sales-guide-close")?.addEventListener("click", closeSalesGuideModal);
+        document.getElementById("sales-guide-backdrop")?.addEventListener("click", closeSalesGuideModal);
+      }
+
+      function openSearchModal() {
+        ensureSearchModals();
+        buildGiftCatalog();
+        const modal = document.getElementById("gift-search-modal");
+        const input = document.getElementById("gift-search-input");
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
+        renderSearchResults([], "");
+        input.value = "";
+        document.getElementById("gift-search-clear").hidden = true;
+        window.setTimeout(() => input.focus(), 50);
+      }
+
+      function closeSearchModal() {
+        const modal = document.getElementById("gift-search-modal");
+        if (!modal || modal.hidden) return;
+        modal.hidden = true;
+        document.body.style.overflow = "";
+        closePreviewModal();
+      }
+
+      function closePreviewModal() {
+        const modal = document.getElementById("gift-preview-modal");
+        if (!modal || modal.hidden) return;
+        modal.hidden = true;
+        previewState = { images: [], index: 0, name: "" };
+      }
+
+      function renderPreviewSlide() {
+        const main = document.getElementById("gift-preview-main");
+        const counter = document.getElementById("gift-preview-counter");
+        const prevBtn = document.getElementById("gift-preview-prev");
+        const nextBtn = document.getElementById("gift-preview-next");
+        const { images, index, name } = previewState;
+
+        document.getElementById("gift-preview-title").textContent = name;
+
+        if (!images.length) {
+          main.innerHTML = '<div class="gift-preview-placeholder">暂无图片素材</div>';
+          counter.textContent = "";
+          prevBtn.disabled = true;
+          nextBtn.disabled = true;
+          return;
+        }
+
+        main.innerHTML = `<img src="${images[index]}" alt="${escapeHtml(name)}" />`;
+        counter.textContent = `${index + 1} / ${images.length}`;
+        prevBtn.disabled = index <= 0;
+        nextBtn.disabled = index >= images.length - 1;
+      }
+
+      async function openPreviewModal(entry) {
+        ensureSearchModals();
+        const modal = document.getElementById("gift-preview-modal");
+        const main = document.getElementById("gift-preview-main");
+        modal.hidden = false;
+        main.innerHTML = '<div class="gift-preview-placeholder">加载中…</div>';
+
+        const images = await getGiftPreviewImages(entry);
+        previewState = { images, index: 0, name: entry.name };
+        renderPreviewSlide();
+      }
+
+      async function downloadGiftZip(entry) {
+        if (typeof JSZip === "undefined") {
+          window.alert("打包组件未加载，请刷新页面后重试。");
+          return;
+        }
+
+        const assets = await crawlGiftAssets(entry);
+        if (!assets.length) {
+          window.alert("暂无素材可下载。");
+          return;
+        }
+
+        const zip = new JSZip();
+        let count = 0;
+
+        for (const item of assets) {
+          try {
+            const res = await fetch(item.url);
+            if (!res.ok) continue;
+            zip.file(item.zipPath, await res.blob());
+            count += 1;
+          } catch {
+            /* skip */
+          }
+        }
+
+        if (count === 0) {
+          window.alert("暂无素材可下载。");
+          return;
+        }
+
+        await downloadBlob(await zip.generateAsync({ type: "blob" }), `${entry.name}.zip`);
+      }
+
+      function findCatalogEntry(name) {
+        return giftCatalog.find((entry) => entry.name === name);
+      }
+
+      function bindSearchModalEvents() {
+        if (document.body.dataset.searchModalBound === "1") return;
+        document.body.dataset.searchModalBound = "1";
+
+        const modal = document.getElementById("gift-search-modal");
+        const input = document.getElementById("gift-search-input");
+        const clearBtn = document.getElementById("gift-search-clear");
+
+        document.getElementById("gift-search-close").addEventListener("click", closeSearchModal);
+        document.getElementById("gift-search-backdrop").addEventListener("click", closeSearchModal);
+        document.getElementById("gift-preview-close").addEventListener("click", closePreviewModal);
+        document.getElementById("gift-preview-backdrop").addEventListener("click", closePreviewModal);
+
+        input.addEventListener("input", () => {
+          const query = input.value;
+          clearBtn.hidden = !query;
+          renderSearchResults(searchGiftCatalog(query), query);
+        });
+
+        clearBtn.addEventListener("click", () => {
+          input.value = "";
+          clearBtn.hidden = true;
+          renderSearchResults([], "");
+          input.focus();
+        });
+
+        document.getElementById("gift-search-results").addEventListener("click", async (e) => {
+          const btn = e.target.closest("[data-action]");
+          if (!btn) return;
+          const card = btn.closest("[data-gift-name]");
+          if (!card) return;
+          const entry = findCatalogEntry(card.dataset.giftName);
+          if (!entry) return;
+
+          if (btn.dataset.action === "preview") {
+            await openPreviewModal(entry);
+            return;
+          }
+
+          if (btn.dataset.action === "download") {
+            const original = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = "打包中…";
+            try {
+              await downloadGiftZip(entry);
+            } finally {
+              btn.disabled = false;
+              btn.textContent = original;
+            }
+          }
+        });
+
+        document.getElementById("gift-preview-prev").addEventListener("click", () => {
+          if (previewState.index > 0) {
+            previewState.index -= 1;
+            renderPreviewSlide();
+          }
+        });
+
+        document.getElementById("gift-preview-next").addEventListener("click", () => {
+          if (previewState.index < previewState.images.length - 1) {
+            previewState.index += 1;
+            renderPreviewSlide();
+          }
+        });
+
+        document.addEventListener("keydown", (e) => {
+          const previewModal = document.getElementById("gift-preview-modal");
+          const searchModal = document.getElementById("gift-search-modal");
+
+          if (e.key === "Escape") {
+            const guideModal = document.getElementById("sales-guide-modal");
+            if (guideModal && !guideModal.hidden) {
+              closeSalesGuideModal();
+              e.preventDefault();
+              return;
+            }
+            if (previewModal && !previewModal.hidden) {
+              closePreviewModal();
+              e.preventDefault();
+              return;
+            }
+            if (searchModal && !searchModal.hidden) {
+              closeSearchModal();
+              e.preventDefault();
+            }
+          }
+        });
+      }
+
+      async function downloadImagesZip() {
+        const period = getActivePeriod();
+        if (!period) {
+          window.alert("当前期次没有数据。");
+          return;
+        }
+        if (typeof JSZip === "undefined") {
+          window.alert("打包组件未加载，请刷新页面后重试。");
+          return;
+        }
+
+        const btn = document.getElementById("download-images-btn");
+        const btnLabel = btn?.textContent || "下载全部图片";
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "打包中…";
+        }
+
+        try {
+          const zip = new JSZip();
+          const entries = await crawlPeriodAssets(period.id);
+          let count = 0;
+
+          for (const entry of entries) {
+            try {
+              const res = await fetch(entry.url);
+              if (!res.ok) continue;
+              const blob = await res.blob();
+              zip.file(entry.zipPath, blob);
+              count += 1;
+            } catch {
+              /* skip missing file */
+            }
+          }
+
+          if (count === 0) {
+            window.alert("没有找到可下载的图片。请确认 assets 对应期次文件夹存在。");
+            return;
+          }
+
+          const blob = await zip.generateAsync({ type: "blob" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = `${period.id}-全部图片.zip`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = btnLabel;
+          }
+        }
+      }
+
+      function bindGlobalShortcuts() {
+        document.addEventListener("keydown", (e) => {
+          const mod = e.ctrlKey || e.metaKey;
+          if (!mod || !e.shiftKey) return;
+          if (e.key === "E") {
+            e.preventDefault();
+            exportJson();
+          }
+          if (e.key === "D") {
+            e.preventDefault();
+            downloadImagesZip();
+          }
+        });
+      }
+
+      async function saveEdit(el) {
+        const periodId = el.dataset.periodId;
+        const period = periods.find((p) => p.id === periodId);
+        if (!period) return;
+
+        if (el.dataset.edit === "period-status") return;
+
+        if (el.dataset.edit === "summary") {
+          period.summary = plainText(el.textContent);
+          await persistPeriod(period);
+          return;
+        }
+
+        if (el.dataset.edit === "header-subline") {
+          period.subtitle = plainText(el.textContent);
+          period.dateRange = "";
+          el.textContent = period.subtitle;
+          await persistPeriod(period);
+          return;
+        }
+
+        const bundle = findBundle(periodId, el.dataset.bundleId);
+        if (!bundle) return;
+
+        if (el.dataset.edit === "selling-point") {
+          const gift = findGift(bundle, el.dataset.giftName);
+          if (!gift) return;
+          const idx = Number(el.dataset.pointIndex);
+          gift.sellingPoints[idx] = plainText(el.textContent);
+          await persistPeriod(period);
+          return;
+        }
+
+        if (el.dataset.edit === "bundle-name") {
+          const oldName = bundle.name;
+          const newName = plainText(el.textContent) || oldName;
+          bundle.name = newName;
+          el.textContent = newName;
+          const tabBtn = document.querySelector(`[data-bundle-tab="${bundle.id}"]`);
+          if (tabBtn) tabBtn.textContent = newName;
+          syncSalesScript(bundle, oldName);
+          const scriptEl = document.querySelector(
+            `[data-edit="bundle-script"][data-bundle-id="${bundle.id}"]`
+          );
+          if (scriptEl) scriptEl.textContent = bundle.salesScript;
+          await persistPeriod(period);
+        }
+
+        if (el.dataset.edit === "bundle-script") {
+          bundle.salesScript = plainText(el.textContent);
+          el.textContent = bundle.salesScript;
+          await persistPeriod(period);
+        }
+      }
+
+      function exportJson() {
+        mergePeriods();
+        const payload = {
+          periods: basePeriods.map((p) => {
+            const overlay = serverEdits[p.id];
+            if (!overlay) return structuredClone(p);
+            return sanitizePeriod(deepMerge(structuredClone(p), overlay));
+          }),
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "periods.json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      function mount(periodId) {
+        mergePeriods();
+        const period = periods.find((p) => p.id === periodId) || periods[0];
+        document.getElementById("app").innerHTML = renderPeriod(period);
+        bindEditors();
+        bindBundleTabs();
+        bindOpsHiddenFooter();
+
+        document.getElementById("period-select").addEventListener("change", (e) => {
+          const id = e.target.value;
+          history.replaceState(null, "", `?period=${id}`);
+          activeBundleTabId = null;
+          mount(id);
+        });
+
+        document.getElementById("download-images-btn")?.addEventListener("click", () => {
+          downloadImagesZip();
+        });
+
+        document.getElementById("search-gifts-btn")?.addEventListener("click", () => {
+          openSearchModal();
+        });
+
+        document.getElementById("sales-guide-btn")?.addEventListener("click", () => {
+          openSalesGuideModal(periodId);
+        });
+
+        hydrateIncludeThumbs();
+        startRemoteSync(periodId);
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") syncFromServer(false);
+      });
+
+      fetch("data/periods.json")
+        .then((r) => r.json())
+        .then(async (data) => {
+          basePeriods = data.periods;
+          await loadPeriodEdits();
+          await migrateLocalEditsIfNeeded();
+          await loadShelfOverrides();
+          const defaultId =
+            getPeriodFromUrl() ||
+            basePeriods.find((p) => p.status === "upcoming" || p.status === "active")?.id ||
+            basePeriods[0].id;
+          mount(defaultId);
+          bindGlobalShortcuts();
+          ensureSearchModals();
+        })
+        .catch(() => {
+          document.getElementById("app").innerHTML =
+            "<p>加载失败。请用本地服务器打开（见 README）。</p>";
+        });
+    </script>
+  </body>
+</html>
