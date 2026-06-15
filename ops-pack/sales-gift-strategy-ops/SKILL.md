@@ -102,17 +102,31 @@ python3 -m http.server 8765
 
 线上：**https://gift-strategy.run.zhenguanyu.com**
 
-预览 OK 后，**整包 `sales-gift-strategy/` 上传覆盖**（含 `data/periods.json` 和 `assets/`）。
+预览 OK 后，推荐走 GitHub 协作：先提交并推送仓库，再让线上服务器 `git pull` 更新。
 
-### 用 Cursor 部署
+仓库：`https://github.com/yinxxzz/gifts.git`
 
-用户说「帮我把 sales-gift-strategy 部署上线」时：
+### 首次部署
 
-1. 确认 `data/periods.json` 和 `assets/YYYY-MM/` 已保存  
-2. 读 `env.md` + `id_ed25519`，SSH 到 Run 机器  
-3. `tar` 上传至 `/home/shared/workspace/gift-strategy`（排除 `env.md`、`id_ed25519`、`_backup`）  
-4. 远程执行 `./start-server.sh`（8080）  
-5. 打开 `https://gift-strategy.run.zhenguanyu.com/?period=YYYY-MM` 验收
+```bash
+mkdir -p /home/shared/workspace
+cd /home/shared/workspace
+git clone https://github.com/yinxxzz/gifts.git gift-strategy
+cd gift-strategy
+chmod +x ./start-server.sh
+./start-server.sh
+```
+
+### 后续更新
+
+```bash
+cd /home/shared/workspace/gift-strategy
+git pull
+chmod +x ./start-server.sh
+./start-server.sh
+```
+
+详细说明见下载包里的 `同事部署说明.md`。
 
 ### 驿站 iframe（首次一次性）
 

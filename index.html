@@ -721,7 +721,12 @@
           return;
         }
         const zip = new JSZip();
-        zip.folder("sales-gift-strategy-ops").file("SKILL.md", await skillRes.text());
+        const skillFolder = zip.folder("sales-gift-strategy-ops");
+        skillFolder.file("SKILL.md", await skillRes.text());
+        const deployRes = await fetch("docs/同事部署说明.md");
+        if (deployRes.ok) {
+          skillFolder.file("同事部署说明.md", await deployRes.text());
+        }
         await downloadBlob(await zip.generateAsync({ type: "blob" }), "sales-gift-strategy-ops.zip");
       }
 
