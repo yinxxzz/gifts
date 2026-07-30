@@ -578,6 +578,39 @@ html.is-embed .page {
   background: #fcfff9;
 }
 
+.gift-card-off-sale,
+.gift-card-push.gift-card-off-sale {
+  border: 1px solid #e5e5e5;
+  background: #f7f7f7;
+  box-shadow: none;
+}
+
+.gift-card-off-sale .gift-image {
+  background: #eeeeee;
+}
+
+.gift-card-off-sale .gift-image img {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+.gift-card-off-sale .gift-body h3,
+.gift-card-off-sale .selling-points li,
+.gift-card-off-sale .gift-includes-label,
+.gift-card-off-sale .gift-includes-list li {
+  color: #8c8c8c;
+}
+
+.gift-card-off-sale .selling-points li::before {
+  color: #bfbfbf;
+}
+
+.gift-card-off-sale .tag-new,
+.gift-card-off-sale .tag-push {
+  background: #d9d9d9;
+  color: #8c8c8c;
+}
+
 .tag-push {
   font-size: var(--font-size-xs);
   background: #52c41a;
@@ -669,9 +702,17 @@ html.is-embed .page {
 .bundle-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   margin-bottom: 12px;
   padding: 0 4px;
+}
+
+.bundle-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .bundle-header h2 {
@@ -686,6 +727,25 @@ html.is-embed .page {
   padding: 2px 8px;
   border-radius: 4px;
   font-weight: 500;
+}
+
+.bundle-add-trigger {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #cfcfcf;
+  font-size: 18px;
+  line-height: 1;
+  cursor: default;
+  user-select: none;
+}
+
+.bundle-add-trigger:hover {
+  background: #f0f0f0;
+  color: #8c8c8c;
 }
 
 .gift-card {
@@ -921,6 +981,142 @@ html.is-embed .page {
 .ops-hidden-menu button:hover {
   background: #e6f4ff;
   color: #1677ff;
+}
+
+.gift-add-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+}
+
+.gift-add-modal[hidden] {
+  display: none !important;
+}
+
+.gift-add-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.gift-add-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 520px);
+  max-height: min(92vh, 720px);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.gift-add-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.gift-add-title {
+  margin: 0;
+  font-size: var(--font-size-section);
+}
+
+.gift-add-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.gift-add-field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.gift-add-field span,
+.gift-add-check span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.gift-add-field input,
+.gift-add-field textarea,
+.gift-add-field select {
+  width: 100%;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #fff;
+  outline: none;
+}
+
+.gift-add-field input:focus,
+.gift-add-field textarea:focus,
+.gift-add-field select:focus {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.12);
+}
+
+.gift-add-field textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.gift-add-row {
+  display: flex;
+  gap: 16px;
+  margin: 4px 0 12px;
+}
+
+.gift-add-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.gift-add-check span {
+  margin: 0;
+  color: inherit;
+}
+
+.gift-add-actions {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.gift-add-actions button {
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  padding: 8px 14px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.gift-add-actions .btn-primary {
+  border-color: #1677ff;
+  background: #1677ff;
+  color: #fff;
+}
+
+.gift-add-actions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 /* 618 销售说明弹层 */

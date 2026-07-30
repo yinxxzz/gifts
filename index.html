@@ -10,7 +10,7 @@
     <link rel="icon" href="favicon.png?v=2" type="image/png" sizes="32x32" />
     <link rel="icon" href="favicon.svg?v=2" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="favicon.png?v=2" />
-    <link rel="stylesheet" href="styles/main.css?v=20260611a" />
+    <link rel="stylesheet" href="styles/main.css?v=20260706-addgift" />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   </head>
@@ -272,6 +272,20 @@
         shelfOverrides = data.overrides || {};
       }
 
+      async function saveGiftItemToServer(payload) {
+        const res = await fetch("/api/gift-item", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "新增赠品失败");
+        serverEdits = data.edits || serverEdits;
+        shelfOverrides = data.overrides || shelfOverrides;
+        if (data.period?.id) serverEdits[data.period.id] = data.period;
+      }
+
       async function syncFromServer(forceRemount) {
         const prevEdits = JSON.stringify(serverEdits);
         const prevShelf = JSON.stringify(shelfOverrides);
@@ -370,6 +384,10 @@
         if (shelfStatus === "on_sale") return "shelf-on-sale";
         if (shelfStatus === "pending") return "shelf-pending";
         return "shelf-off-sale";
+      }
+
+      function isGiftOffSale(gift, period) {
+        return resolveGiftShelfStatus(gift, period).shelfStatus === "off_sale";
       }
 
       function cycleGiftShelfStatus(gift, period) {
@@ -504,9 +522,16 @@
           ? `<img src="${gift.image}" alt="${gift.name}" />`
           : icon;
         const shelf = resolveGiftShelfStatus(gift, period);
+        const cardClass = [
+          "gift-card",
+          highlighted ? "gift-card-push" : "",
+          shelf.shelfStatus === "off_sale" ? "gift-card-off-sale" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
 
         return `
-          <article class="gift-card ${highlighted ? "gift-card-push" : ""}">
+          <article class="${cardClass}">
             <span
               class="gift-shelf-badge ${shelfStatusClass(shelf.shelfStatus)}"
               data-edit="gift-shelf-status"
@@ -543,9 +568,13 @@
           </article>`;
       }
 
-      function sortGiftsByRecommended(bundle) {
+      function sortGiftsByRecommended(bundle, period) {
         const order = new Map((bundle.recommended || []).map((name, i) => [name, i]));
         return [...bundle.gifts].sort((a, b) => {
+          const aOffSale = isGiftOffSale(a, period);
+          const bOffSale = isGiftOffSale(b, period);
+          if (aOffSale !== bOffSale) return aOffSale ? 1 : -1;
+
           const aPush = order.has(a.name);
           const bPush = order.has(b.name);
           if (aPush && bPush) return order.get(a.name) - order.get(b.name);
@@ -562,14 +591,25 @@
 
         return `
             <div class="bundle-header">
-              <h2
-                class="ops-editable"
-                spellcheck="false"
-                data-edit="bundle-name"
+              <div class="bundle-title-row">
+                <h2
+                  class="ops-editable"
+                  spellcheck="false"
+                  data-edit="bundle-name"
+                  data-period-id="${periodId}"
+                  data-bundle-id="${bundle.id}"
+                >${escapeHtml(bundle.name)}</h2>
+                <span class="bundle-rule">${bundle.rule}</span>
+              </div>
+              <button
+                type="button"
+                class="bundle-add-trigger"
+                data-add-gift
                 data-period-id="${periodId}"
                 data-bundle-id="${bundle.id}"
-              >${escapeHtml(bundle.name)}</h2>
-              <span class="bundle-rule">${bundle.rule}</span>
+                title="三击新增赠品"
+                aria-label="新增赠品"
+              >＋</button>
             </div>
 
             ${
@@ -584,7 +624,7 @@
                 : ""
             }
 
-            ${sortGiftsByRecommended(bundle)
+            ${sortGiftsByRecommended(bundle, period)
               .map((g) =>
                 renderGiftCard(g, isRecommended(bundle, g.name), periodId, bundle.id, period)
               )
@@ -767,15 +807,24 @@
         let clicks = 0;
         let timer = null;
 
+        function resetClicksLater() {
+          window.clearTimeout(timer);
+          timer = window.setTimeout(() => {
+            clicks = 0;
+          }, 900);
+        }
+
+        el.addEventListener("dblclick", () => {
+          if (el.contentEditable === "true") return;
+          clicks = 2;
+          resetClicksLater();
+        });
+
         el.addEventListener("click", (e) => {
           if (el.contentEditable === "true") return;
 
-          clicks += 1;
-          if (clicks === 1) {
-            timer = window.setTimeout(() => {
-              clicks = 0;
-            }, 450);
-          }
+          clicks = Math.max(clicks + 1, e.detail || 1);
+          resetClicksLater();
 
           if (clicks >= 3) {
             window.clearTimeout(timer);
@@ -1150,11 +1199,63 @@
               </div>
               <div class="sales-guide-body" id="sales-guide-body"></div>
             </div>
+          </div>
+          <div id="gift-add-modal" class="gift-add-modal" hidden>
+            <div class="gift-add-backdrop" id="gift-add-backdrop"></div>
+            <form class="gift-add-panel" id="gift-add-form">
+              <div class="gift-add-header">
+                <button type="button" class="gift-search-back-btn" id="gift-add-close">← 返回</button>
+                <h2 class="gift-add-title">新增赠品</h2>
+              </div>
+              <div class="gift-add-body">
+                <input type="hidden" id="gift-add-period-id" />
+                <input type="hidden" id="gift-add-bundle-id" />
+                <label class="gift-add-field">
+                  <span>赠品名称</span>
+                  <input id="gift-add-name" type="text" autocomplete="off" required />
+                </label>
+                <label class="gift-add-field">
+                  <span>图片地址</span>
+                  <input id="gift-add-image" type="text" autocomplete="off" placeholder="可不填" />
+                </label>
+                <label class="gift-add-field">
+                  <span>卖点 1</span>
+                  <textarea id="gift-add-point-1" rows="2" required></textarea>
+                </label>
+                <label class="gift-add-field">
+                  <span>卖点 2</span>
+                  <textarea id="gift-add-point-2" rows="2"></textarea>
+                </label>
+                <div class="gift-add-row">
+                  <label class="gift-add-check">
+                    <input id="gift-add-is-new" type="checkbox" />
+                    <span>新品</span>
+                  </label>
+                  <label class="gift-add-check">
+                    <input id="gift-add-recommended" type="checkbox" />
+                    <span>主推</span>
+                  </label>
+                </div>
+                <label class="gift-add-field">
+                  <span>状态</span>
+                  <select id="gift-add-shelf-status">
+                    <option value="on_sale">上架中</option>
+                    <option value="pending">待上架</option>
+                    <option value="off_sale">已下架</option>
+                  </select>
+                </label>
+              </div>
+              <div class="gift-add-actions">
+                <button type="button" id="gift-add-cancel">取消</button>
+                <button type="submit" class="btn-primary" id="gift-add-submit">保存</button>
+              </div>
+            </form>
           </div>`
         );
 
         bindSearchModalEvents();
         bindSalesGuideModalEvents();
+        bindGiftAddModalEvents();
       }
 
       const SALES_GUIDE_DOCS = {
@@ -1232,6 +1333,90 @@
         modal.hidden = true;
         document.body.style.overflow = "";
         closePreviewModal();
+      }
+
+      function openGiftAddModal(periodId, bundleId) {
+        ensureSearchModals();
+        const modal = document.getElementById("gift-add-modal");
+        const form = document.getElementById("gift-add-form");
+        const bundle = findBundle(periodId, bundleId);
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
+        form.reset();
+        document.getElementById("gift-add-period-id").value = periodId;
+        document.getElementById("gift-add-bundle-id").value = bundleId;
+        document.querySelector(".gift-add-title").textContent = bundle
+          ? `新增到${bundle.name}`
+          : "新增赠品";
+        window.setTimeout(() => document.getElementById("gift-add-name").focus(), 50);
+      }
+
+      function closeGiftAddModal() {
+        const modal = document.getElementById("gift-add-modal");
+        if (!modal || modal.hidden) return;
+        modal.hidden = true;
+        document.body.style.overflow = "";
+      }
+
+      function readGiftAddPayload() {
+        const periodId = document.getElementById("gift-add-period-id").value;
+        const bundleId = document.getElementById("gift-add-bundle-id").value;
+        const name = plainText(document.getElementById("gift-add-name").value).trim();
+        const image = String(document.getElementById("gift-add-image").value || "").trim();
+        const sellingPoints = [
+          plainText(document.getElementById("gift-add-point-1").value).trim(),
+          plainText(document.getElementById("gift-add-point-2").value).trim(),
+        ].filter(Boolean);
+        return {
+          periodId,
+          bundleId,
+          gift: {
+            name,
+            image,
+            sellingPoints,
+            isNew: document.getElementById("gift-add-is-new").checked,
+          },
+          recommended: document.getElementById("gift-add-recommended").checked,
+          shelfStatus: document.getElementById("gift-add-shelf-status").value,
+        };
+      }
+
+      function bindGiftAddModalEvents() {
+        if (document.body.dataset.giftAddModalBound === "1") return;
+        document.body.dataset.giftAddModalBound = "1";
+
+        document.getElementById("gift-add-close")?.addEventListener("click", closeGiftAddModal);
+        document.getElementById("gift-add-cancel")?.addEventListener("click", closeGiftAddModal);
+        document.getElementById("gift-add-backdrop")?.addEventListener("click", closeGiftAddModal);
+        document.getElementById("gift-add-form")?.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const payload = readGiftAddPayload();
+          if (!payload.gift.name) {
+            window.alert("赠品名称不能为空");
+            return;
+          }
+          if (!payload.gift.sellingPoints.length) {
+            window.alert("至少填写 1 条卖点");
+            return;
+          }
+
+          const submit = document.getElementById("gift-add-submit");
+          const original = submit.textContent;
+          submit.disabled = true;
+          submit.textContent = "保存中…";
+          try {
+            await saveGiftItemToServer(payload);
+            activeBundleTabId = payload.bundleId;
+            mergePeriods();
+            closeGiftAddModal();
+            mount(payload.periodId);
+          } catch (err) {
+            window.alert(err.message || "新增赠品失败，请重试");
+          } finally {
+            submit.disabled = false;
+            submit.textContent = original;
+          }
+        });
       }
 
       function closePreviewModal() {
@@ -1386,6 +1571,12 @@
 
           if (e.key === "Escape") {
             const guideModal = document.getElementById("sales-guide-modal");
+            const addModal = document.getElementById("gift-add-modal");
+            if (addModal && !addModal.hidden) {
+              closeGiftAddModal();
+              e.preventDefault();
+              return;
+            }
             if (guideModal && !guideModal.hidden) {
               closeSalesGuideModal();
               e.preventDefault();
@@ -1551,6 +1742,7 @@
         document.getElementById("app").innerHTML = renderPeriod(period);
         bindEditors();
         bindBundleTabs();
+        bindGiftAddTriggers();
         bindOpsHiddenFooter();
 
         document.getElementById("period-select").addEventListener("change", (e) => {
@@ -1574,6 +1766,14 @@
 
         hydrateIncludeThumbs();
         startRemoteSync(periodId);
+      }
+
+      function bindGiftAddTriggers() {
+        document.querySelectorAll("[data-add-gift]").forEach((el) => {
+          bindTripleClickEdit(el, () => {
+            openGiftAddModal(el.dataset.periodId, el.dataset.bundleId);
+          });
+        });
       }
 
       document.addEventListener("visibilitychange", () => {
