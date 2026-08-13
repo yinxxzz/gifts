@@ -60,6 +60,7 @@
       let serverEdits = {};
       let shelfPollTimer = null;
       let currentPeriodId = null;
+      const editorSaveTimers = new WeakMap();
 
       function parseRule(rule) {
         const m = String(rule).match(/(\d+)选(\d+)/);
@@ -177,6 +178,22 @@
         if (!res.ok) throw new Error(data.error || "文案保存失败");
         serverEdits = data.edits || serverEdits;
         serverEdits[period.id] = payload;
+      }
+
+      function savePeriodEditKeepalive(period) {
+        try {
+          const payload = stripShelfFromPeriod(sanitizePeriod(structuredClone(period)));
+          serverEdits[period.id] = payload;
+          fetch("/api/period-edits", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            cache: "no-store",
+            keepalive: true,
+            body: JSON.stringify({ periodId: period.id, period: payload }),
+          }).catch(() => {});
+        } catch {
+          /* 页面关闭前尽力保存 */
+        }
       }
 
       function saveEdits(edits) {
@@ -1091,12 +1108,29 @@
             document.execCommand("insertText", false, text);
           });
 
+          el.addEventListener("input", () => {
+            if (el.contentEditable !== "true") return;
+            scheduleEditorSave(el);
+          });
+
           el.addEventListener("blur", async () => {
+            window.clearTimeout(editorSaveTimers.get(el));
             el.contentEditable = "false";
             el.classList.remove("is-editing");
             await saveEdit(el);
           });
         });
+
+        if (document.body.dataset.editorUnloadBound !== "1") {
+          document.body.dataset.editorUnloadBound = "1";
+          window.addEventListener("beforeunload", () => {
+            document.querySelectorAll(".ops-editable.is-editing").forEach((el) => {
+              window.clearTimeout(editorSaveTimers.get(el));
+              const period = applyEditToPeriod(el);
+              if (period) savePeriodEditKeepalive(period);
+            });
+          });
+        }
 
         document.querySelectorAll('[data-edit="period-status"]').forEach((el) => {
           bindTripleClickEdit(el, async () => {
@@ -1931,37 +1965,34 @@
         });
       }
 
-      async function saveEdit(el) {
+      function applyEditToPeriod(el) {
         const periodId = el.dataset.periodId;
         const period = periods.find((p) => p.id === periodId);
-        if (!period) return;
+        if (!period) return null;
 
-        if (el.dataset.edit === "period-status") return;
+        if (el.dataset.edit === "period-status") return null;
 
         if (el.dataset.edit === "summary") {
           period.summary = plainText(el.textContent);
-          await persistPeriod(period);
-          return;
+          return period;
         }
 
         if (el.dataset.edit === "header-subline") {
           period.subtitle = plainText(el.textContent);
           period.dateRange = "";
           el.textContent = period.subtitle;
-          await persistPeriod(period);
-          return;
+          return period;
         }
 
         const bundle = findBundle(periodId, el.dataset.bundleId);
-        if (!bundle) return;
+        if (!bundle) return null;
 
         if (el.dataset.edit === "selling-point") {
           const gift = findGift(bundle, el.dataset.giftName);
-          if (!gift) return;
+          if (!gift) return null;
           const idx = Number(el.dataset.pointIndex);
           gift.sellingPoints[idx] = plainText(el.textContent);
-          await persistPeriod(period);
-          return;
+          return period;
         }
 
         if (el.dataset.edit === "bundle-name") {
@@ -1976,14 +2007,31 @@
             `[data-edit="bundle-script"][data-bundle-id="${bundle.id}"]`
           );
           if (scriptEl) scriptEl.textContent = bundle.salesScript;
-          await persistPeriod(period);
+          return period;
         }
 
         if (el.dataset.edit === "bundle-script") {
           bundle.salesScript = plainText(el.textContent);
           el.textContent = bundle.salesScript;
-          await persistPeriod(period);
+          return period;
         }
+
+        return null;
+      }
+
+      async function saveEdit(el) {
+        const period = applyEditToPeriod(el);
+        if (period) await persistPeriod(period);
+      }
+
+      function scheduleEditorSave(el) {
+        window.clearTimeout(editorSaveTimers.get(el));
+        const timer = window.setTimeout(() => {
+          saveEdit(el).catch((err) => {
+            console.warn("自动保存失败", err);
+          });
+        }, 800);
+        editorSaveTimers.set(el, timer);
       }
 
       function exportJson() {
