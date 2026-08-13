@@ -395,22 +395,19 @@
       }
 
       function formatGiftCopyText(gift, bundle, period) {
-        const tags = [];
-        if (gift.isNew) tags.push("新");
-        if (isRecommended(bundle, gift.name)) tags.push("主推");
-
-        const lines = [`${gift.name}${tags.length ? `（${tags.join("、")}）` : ""}`];
-        for (const point of gift.sellingPoints || []) {
-          const text = plainText(point).trim();
-          if (text) lines.push(`- ${text}`);
-        }
+        const points = (gift.sellingPoints || [])
+          .map((point) => plainText(point).trim())
+          .filter(Boolean);
+        const lines = points.length ? points : [gift.name];
 
         const includes = resolveGiftIncludes(gift, period.id, bundle.id)
           .map((item) => plainText(item).trim())
           .filter(Boolean);
-        if (includes.length) lines.push(`礼品清单：${includes.join("、")}`);
+        if (includes.length) {
+          lines.push(`里面包含${includes.join("、")}。`);
+        }
 
-        return lines.join("\n");
+        return lines.join("");
       }
 
       function formatBundleCopyText(bundle, period) {
