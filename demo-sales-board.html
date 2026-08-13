@@ -386,7 +386,9 @@
         left: 0;
         width: 100%;
         overflow: hidden;
-        background: linear-gradient(90deg, #46dff4 0%, #4f8cff 58%, #b86cff 100%);
+        background: linear-gradient(90deg, #46dff4 0%, #4f8cff 33%, #b86cff 66%, #46dff4 100%);
+        background-size: 200% 100%;
+        animation: barFlow 7s linear infinite;
       }
 
       .note-list {
@@ -508,6 +510,11 @@
       @keyframes pulseDot {
         0%, 100% { transform: scale(.86); opacity: .65; }
         50% { transform: scale(1.18); opacity: 1; }
+      }
+
+      @keyframes barFlow {
+        from { background-position: 0% 50%; }
+        to { background-position: 200% 50%; }
       }
 
       @keyframes itemRise {
