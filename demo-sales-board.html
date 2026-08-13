@@ -146,18 +146,23 @@
 
       .neon-aurora {
         position: absolute;
-        inset: -28%;
+        inset: -34%;
         z-index: 0;
         pointer-events: none;
         opacity: .72;
         background:
-          radial-gradient(circle at 18% 22%, rgba(34, 211, 238, .36), transparent 28%),
-          radial-gradient(circle at 82% 18%, rgba(217, 70, 239, .28), transparent 30%),
-          radial-gradient(circle at 74% 82%, rgba(163, 230, 53, .24), transparent 26%),
-          linear-gradient(115deg, transparent 22%, rgba(59, 130, 246, .12) 44%, transparent 62%);
+          conic-gradient(from 18deg at 52% 46%,
+            rgba(34, 211, 238, .30),
+            rgba(59, 130, 246, .12) 18%,
+            rgba(217, 70, 239, .24) 34%,
+            rgba(255, 255, 255, 0) 50%,
+            rgba(163, 230, 53, .20) 66%,
+            rgba(34, 211, 238, .18) 82%,
+            rgba(34, 211, 238, .30)),
+          radial-gradient(circle at 50% 48%, rgba(255, 255, 255, .28), transparent 42%);
         filter: blur(5px);
-        transform: translate3d(-3%, -2%, 0) scale(1);
-        animation: auroraDrift 8.8s ease-in-out infinite;
+        transform: rotate(0deg) scale(1.02);
+        animation: auroraOrbit 12s linear infinite;
       }
 
       .neon-board::before {
@@ -410,18 +415,18 @@
         70% { transform: translateX(1%); opacity: .56; }
       }
 
-      @keyframes auroraDrift {
-        0%, 100% {
-          transform: translate3d(-3%, -2%, 0) scale(1);
-          opacity: .62;
+      @keyframes auroraOrbit {
+        0% {
+          transform: rotate(0deg) scale(1.02);
+          opacity: .68;
         }
-        42% {
-          transform: translate3d(4%, 3%, 0) scale(1.04);
+        50% {
+          transform: rotate(180deg) scale(1.06);
           opacity: .82;
         }
-        72% {
-          transform: translate3d(1%, -1%, 0) scale(1.02);
-          opacity: .7;
+        100% {
+          transform: rotate(360deg) scale(1.02);
+          opacity: .68;
         }
       }
 
