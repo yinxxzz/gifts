@@ -505,10 +505,10 @@ html.is-embed .page {
 .gift-preview-panel {
   position: relative;
   z-index: 1;
-  width: min(100%, 400px);
+  width: min(92vw, 760px);
   background: #fff;
   border-radius: 12px;
-  max-height: min(72vh, 560px);
+  max-height: min(86vh, 760px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -554,7 +554,7 @@ html.is-embed .page {
 
 .gift-preview-main img {
   max-width: 100%;
-  max-height: min(46vh, 360px);
+  max-height: min(68vh, 620px);
   width: auto;
   height: auto;
   object-fit: contain;
@@ -936,6 +936,24 @@ html.is-embed .page {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.gift-image-btn {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  display: block;
+}
+
+.gift-image-btn:hover img {
+  transform: scale(1.04);
+}
+
+.gift-image-btn img {
+  transition: transform 0.18s ease;
 }
 
 .gift-body h3 {

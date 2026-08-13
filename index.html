@@ -10,7 +10,7 @@
     <link rel="icon" href="favicon.png?v=2" type="image/png" sizes="32x32" />
     <link rel="icon" href="favicon.svg?v=2" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="favicon.png?v=2" />
-    <link rel="stylesheet" href="styles/main.css?v=20260813-product-info" />
+    <link rel="stylesheet" href="styles/main.css?v=20260813-image-preview" />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   </head>
@@ -638,6 +638,22 @@
         return [];
       }
 
+      function isPendingProductInfoText(value) {
+        const text = plainText(value).trim();
+        return !text || /待确认|未体现|待补/.test(text);
+      }
+
+      function normalizeProductInfoValue(value) {
+        if (Array.isArray(value)) {
+          const list = value
+            .map((item) => plainText(item).trim())
+            .filter((item) => item && !isPendingProductInfoText(item));
+          return list.length ? list : null;
+        }
+        const text = plainText(value).trim();
+        return text && !isPendingProductInfoText(text) ? text : null;
+      }
+
       function renderProductInfoValue(value) {
         if (Array.isArray(value)) {
           return value
@@ -648,7 +664,12 @@
       }
 
       function renderProductInfo(gift) {
-        const items = normalizeProductInfo(gift);
+        const items = normalizeProductInfo(gift)
+          .map((item) => ({
+            label: item.label,
+            value: normalizeProductInfoValue(item.value),
+          }))
+          .filter((item) => item.label && item.value);
         if (!items.length) return "";
 
         return `
@@ -693,7 +714,16 @@
       function renderGiftCard(gift, highlighted, periodId, bundleId, period) {
         const icon = GIFT_ICONS[gift.name] || "🎁";
         const imgHtml = gift.image
-          ? `<img src="${gift.image}" alt="${gift.name}" />`
+          ? `<button
+              type="button"
+              class="gift-image-btn"
+              data-preview-gift="1"
+              data-period-id="${periodId}"
+              data-bundle-id="${bundleId}"
+              data-gift-name="${escapeHtml(gift.name)}"
+              aria-label="查看${escapeHtml(gift.name)}图片"
+              title="点开看大图"
+            ><img src="${gift.image}" alt="${gift.name}" /></button>`
           : icon;
         const shelf = resolveGiftShelfStatus(gift, period);
         const cardClass = [
@@ -1633,6 +1663,10 @@
         if (!modal || modal.hidden) return;
         modal.hidden = true;
         previewState = { images: [], index: 0, name: "" };
+        const searchModal = document.getElementById("gift-search-modal");
+        if (!searchModal || searchModal.hidden) {
+          document.body.style.overflow = "";
+        }
       }
 
       function renderPreviewSlide() {
@@ -1663,11 +1697,27 @@
         const modal = document.getElementById("gift-preview-modal");
         const main = document.getElementById("gift-preview-main");
         modal.hidden = false;
+        document.body.style.overflow = "hidden";
         main.innerHTML = '<div class="gift-preview-placeholder">加载中…</div>';
 
         const images = await getGiftPreviewImages(entry);
         previewState = { images, index: 0, name: entry.name };
         renderPreviewSlide();
+      }
+
+      function bindGiftImagePreviews(period) {
+        document.querySelectorAll("[data-preview-gift]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const bundle = (period.bundles || []).find((item) => item.id === btn.dataset.bundleId);
+            const gift = (bundle?.gifts || []).find((item) => item.name === btn.dataset.giftName);
+            if (!gift) return;
+            await openPreviewModal({
+              name: gift.name,
+              periodId: btn.dataset.periodId,
+              image: gift.image || "",
+            });
+          });
+        });
       }
 
       async function downloadGiftZip(entry) {
@@ -1953,6 +2003,7 @@
         bindBundleTabs();
         bindGiftAddTriggers();
         bindCopyButtons();
+        bindGiftImagePreviews(period);
         bindOpsHiddenFooter();
 
         document.getElementById("period-select").addEventListener("change", (e) => {
