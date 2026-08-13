@@ -162,7 +162,8 @@ html.is-embed .page {
 }
 
 .header-actions .download-images-btn,
-.header-actions .search-gifts-btn {
+.header-actions .search-gifts-btn,
+.header-actions .header-copy-btn {
   flex: 1;
   margin-top: 0;
   padding: 10px 12px;
@@ -174,19 +175,42 @@ html.is-embed .page {
 }
 
 .header-actions .download-images-btn:hover,
-.header-actions .search-gifts-btn:hover {
+.header-actions .search-gifts-btn:hover,
+.header-actions .header-copy-btn:hover {
   background: #e6f4ff;
 }
 
 .header-actions .download-images-btn:active,
-.header-actions .search-gifts-btn:active {
+.header-actions .search-gifts-btn:active,
+.header-actions .header-copy-btn:active {
   background: #bae0ff;
 }
 
 .header-actions .download-images-btn:disabled,
-.header-actions .search-gifts-btn:disabled {
+.header-actions .search-gifts-btn:disabled,
+.header-actions .header-copy-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.copy-text-btn {
+  border: 1px solid #1677ff;
+  border-radius: 8px;
+  background: #fff;
+  color: #1677ff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.copy-text-btn:hover {
+  background: #e6f4ff;
+}
+
+.copy-text-btn.is-copied {
+  border-color: #52c41a;
+  background: #f6ffed;
+  color: #389e0d;
 }
 
 .download-images-btn {
@@ -545,11 +569,27 @@ html.is-embed .page {
   box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.2);
 }
 
+.bundle-script-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.bundle-copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  padding: 4px 8px;
+  font-size: var(--font-size-xs);
+  line-height: 1.3;
+  background: #fff;
+}
+
 .bundle-sales-script {
   background: #fff;
   border-radius: 10px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
+  padding: 14px 92px 14px 16px;
+  margin-bottom: 0;
   font-size: var(--font-size-base);
   line-height: var(--line-height);
   white-space: pre-line;
@@ -812,12 +852,36 @@ html.is-embed .page {
 }
 
 .gift-body h3 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: var(--font-size-base);
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+  min-width: 0;
+}
+
+.gift-title-line {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 62px;
+  margin-bottom: 8px;
+}
+
+.gift-copy-btn {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #595959;
+  border-color: #d9d9d9;
+}
+
+.gift-copy-btn:hover {
+  color: #1677ff;
+  border-color: #1677ff;
 }
 
 .gift-includes-block {

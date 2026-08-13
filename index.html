@@ -10,7 +10,7 @@
     <link rel="icon" href="favicon.png?v=2" type="image/png" sizes="32x32" />
     <link rel="icon" href="favicon.svg?v=2" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="favicon.png?v=2" />
-    <link rel="stylesheet" href="styles/main.css?v=20260706-addgift" />
+    <link rel="stylesheet" href="styles/main.css?v=20260813-copy" />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   </head>
@@ -390,6 +390,119 @@
         return resolveGiftShelfStatus(gift, period).shelfStatus === "off_sale";
       }
 
+      function getCopyableGifts(bundle, period) {
+        return sortGiftsByRecommended(bundle, period).filter((gift) => !isGiftOffSale(gift, period));
+      }
+
+      function formatGiftCopyText(gift, bundle, period) {
+        const tags = [];
+        if (gift.isNew) tags.push("新");
+        if (isRecommended(bundle, gift.name)) tags.push("主推");
+
+        const lines = [`${gift.name}${tags.length ? `（${tags.join("、")}）` : ""}`];
+        for (const point of gift.sellingPoints || []) {
+          const text = plainText(point).trim();
+          if (text) lines.push(`- ${text}`);
+        }
+
+        const includes = resolveGiftIncludes(gift, period.id, bundle.id)
+          .map((item) => plainText(item).trim())
+          .filter(Boolean);
+        if (includes.length) lines.push(`礼品清单：${includes.join("、")}`);
+
+        return lines.join("\n");
+      }
+
+      function formatBundleCopyText(bundle, period) {
+        const lines = [`【${bundle.name}｜${bundle.rule}】`];
+        const script = plainText(getBundleSalesScript(period.id, bundle)).trim();
+        if (script) lines.push(script);
+
+        const gifts = getCopyableGifts(bundle, period);
+        if (gifts.length) {
+          lines.push("", "赠品卖点：");
+          for (const gift of gifts) {
+            lines.push(formatGiftCopyText(gift, bundle, period));
+          }
+        }
+
+        return lines.join("\n");
+      }
+
+      function formatPeriodCopyText(period) {
+        const lines = [period.title];
+        const subtitle = plainText(period.subtitle).trim();
+        if (subtitle) lines.push(subtitle);
+
+        const summary = plainText(period.summary).trim();
+        if (summary) lines.push("", "策略介绍：", summary);
+
+        for (const bundle of period.bundles || []) {
+          lines.push("", formatBundleCopyText(bundle, period));
+        }
+
+        return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+      }
+
+      async function writeClipboardText(text) {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand("copy");
+        textarea.remove();
+        if (!ok) throw new Error("复制失败");
+      }
+
+      function showCopyFeedback(button) {
+        const original = button.dataset.originalText || button.textContent;
+        button.dataset.originalText = original;
+        button.textContent = "已复制";
+        button.classList.add("is-copied");
+        window.setTimeout(() => {
+          button.textContent = button.dataset.originalText || original;
+          button.classList.remove("is-copied");
+        }, 1200);
+      }
+
+      function getCopyTextFromButton(button) {
+        const period = periods.find((p) => p.id === button.dataset.periodId);
+        if (!period) return "";
+        if (button.dataset.copyType === "period") return formatPeriodCopyText(period);
+
+        const bundle = period.bundles?.find((b) => b.id === button.dataset.bundleId);
+        if (!bundle) return "";
+        if (button.dataset.copyType === "bundle") return formatBundleCopyText(bundle, period);
+
+        const gift = bundle.gifts?.find((g) => g.name === button.dataset.giftName);
+        if (!gift) return "";
+        return formatGiftCopyText(gift, bundle, period);
+      }
+
+      function bindCopyButtons() {
+        document.querySelectorAll("[data-copy-type]").forEach((button) => {
+          button.addEventListener("click", async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const text = getCopyTextFromButton(button);
+            if (!text) return;
+            try {
+              await writeClipboardText(text);
+              showCopyFeedback(button);
+            } catch {
+              window.alert("复制失败，请手动选中文字复制。");
+            }
+          });
+        });
+      }
+
       function cycleGiftShelfStatus(gift, period) {
         const current = resolveGiftShelfStatus(gift, period);
         const idx = SHELF_STATUS_CYCLE.findIndex((item) => item.shelfStatus === current.shelfStatus);
@@ -542,11 +655,21 @@
             >${shelf.shelfStatusLabel}</span>
             <div class="gift-image">${imgHtml}</div>
             <div class="gift-body">
-              <h3>
-                ${gift.name}
-                ${gift.isNew ? '<span class="tag-new">新</span>' : ""}
-                ${highlighted ? '<span class="tag-push">主推</span>' : ""}
-              </h3>
+              <div class="gift-title-line">
+                <h3>
+                  ${gift.name}
+                  ${gift.isNew ? '<span class="tag-new">新</span>' : ""}
+                  ${highlighted ? '<span class="tag-push">主推</span>' : ""}
+                </h3>
+                <button
+                  type="button"
+                  class="copy-text-btn gift-copy-btn"
+                  data-copy-type="gift"
+                  data-period-id="${periodId}"
+                  data-bundle-id="${bundleId}"
+                  data-gift-name="${escapeHtml(gift.name)}"
+                >复制卖点</button>
+              </div>
               <ul class="selling-points">
                 ${gift.sellingPoints
                   .map(
@@ -614,13 +737,22 @@
 
             ${
               showScript
-                ? `<div
-              class="bundle-sales-script ops-editable"
-              spellcheck="false"
-              data-edit="bundle-script"
-              data-period-id="${periodId}"
-              data-bundle-id="${bundle.id}"
-            >${escapeHtml(salesScript)}</div>`
+                ? `<div class="bundle-script-wrap">
+              <button
+                type="button"
+                class="copy-text-btn bundle-copy-btn"
+                data-copy-type="bundle"
+                data-period-id="${periodId}"
+                data-bundle-id="${bundle.id}"
+              >复制礼包话术</button>
+              <div
+                class="bundle-sales-script ops-editable"
+                spellcheck="false"
+                data-edit="bundle-script"
+                data-period-id="${periodId}"
+                data-bundle-id="${bundle.id}"
+              >${escapeHtml(salesScript)}</div>
+            </div>`
                 : ""
             }
 
@@ -704,6 +836,14 @@
             </div>
             ${renderPeriodSelect(period.id)}
             <div class="header-actions">
+              <button
+                type="button"
+                class="copy-text-btn header-copy-btn"
+                data-copy-type="period"
+                data-period-id="${period.id}"
+              >
+                复制本期话术
+              </button>
               <button type="button" class="download-images-btn" id="download-images-btn">
                 下载全部图片
               </button>
@@ -1743,6 +1883,7 @@
         bindEditors();
         bindBundleTabs();
         bindGiftAddTriggers();
+        bindCopyButtons();
         bindOpsHiddenFooter();
 
         document.getElementById("period-select").addEventListener("change", (e) => {
