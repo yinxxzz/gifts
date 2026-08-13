@@ -8,7 +8,7 @@
       :root {
         color-scheme: light;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #f3f3f3;
+        background: #f3f5f7;
         color: #242424;
       }
 
@@ -23,8 +23,8 @@
         width: min(1560px, 100%);
         margin: 0 auto;
         display: grid;
-        grid-template-columns: 260px minmax(0, 1fr);
-        gap: 22px;
+        grid-template-columns: 286px minmax(0, 1fr);
+        gap: 24px;
         align-items: start;
       }
 
@@ -32,18 +32,18 @@
         position: sticky;
         top: 24px;
         display: grid;
-        gap: 16px;
+        gap: 18px;
       }
 
       .content-demo {
         min-width: 0;
       }
 
-      .demo-heading {
-        margin: 0 0 14px;
+      .demo-label {
+        margin: 0 0 8px;
         color: #8c8c8c;
-        font-size: 13px;
-        font-weight: 600;
+        font-size: 12px;
+        font-weight: 700;
       }
 
       .mock-header,
@@ -128,268 +128,315 @@
       .mock-line:nth-child(2) { width: 78%; }
       .mock-line:nth-child(3) { width: 62%; }
 
-      .side-card {
-        border-radius: 18px;
-        overflow: hidden;
+      .neon-board {
         position: relative;
-        min-height: 230px;
+        overflow: hidden;
+        min-height: 392px;
+        border-radius: 24px;
+        padding: 18px;
+        color: #f8fbff;
+        background:
+          radial-gradient(circle at 16% 8%, rgba(56, 189, 248, .36), transparent 28%),
+          radial-gradient(circle at 92% 18%, rgba(217, 70, 239, .26), transparent 31%),
+          linear-gradient(155deg, #09111f 0%, #101827 54%, #111827 100%);
+        box-shadow:
+          0 18px 42px rgba(12, 37, 78, .28),
+          inset 0 0 0 1px rgba(255,255,255,.12);
+        animation: boardFloat 5.5s ease-in-out infinite;
       }
 
-      .side-label {
-        margin: 0 0 8px;
-        color: #8c8c8c;
-        font-size: 12px;
+      .neon-board::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        padding: 1.5px;
+        border-radius: inherit;
+        background: linear-gradient(135deg, #3b82f6, #22d3ee, #a3e635, #f59e0b, #3b82f6);
+        background-size: 240% 240%;
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+        animation: neonBorder 4.8s linear infinite;
+      }
+
+      .neon-board::after {
+        content: "";
+        position: absolute;
+        left: -30%;
+        top: -20%;
+        width: 160%;
+        height: 42%;
+        background: linear-gradient(180deg, transparent, rgba(255,255,255,.14), transparent);
+        transform: rotate(-18deg);
+        animation: scanLine 4.2s ease-in-out infinite;
+        pointer-events: none;
+      }
+
+      .neon-noise {
+        position: absolute;
+        inset: 0;
+        opacity: .16;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+        background-size: 18px 18px;
+      }
+
+      .neon-head {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .neon-kicker {
+        margin: 0 0 5px;
+        color: #67e8f9;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: .08em;
+      }
+
+      .neon-title {
+        margin: 0;
+        font-size: 25px;
+        line-height: 1.15;
+        text-shadow: 0 0 18px rgba(34, 211, 238, .32);
+      }
+
+      .neon-live {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 5px 9px;
+        background: rgba(34, 211, 238, .14);
+        color: #cffafe;
+        border: 1px solid rgba(103, 232, 249, .35);
+        font-size: 11px;
         font-weight: 700;
       }
 
-      .pin-board {
-        padding: 16px;
-        background:
-          radial-gradient(circle at 24px 24px, rgba(255,255,255,.65) 0 3px, transparent 4px),
-          linear-gradient(160deg, #fff8d9 0%, #ffe9a8 100%);
-        border: 1px solid #ffd666;
-        box-shadow: 0 12px 28px rgba(173, 104, 0, 0.16);
+      .neon-live::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #a3e635;
+        box-shadow: 0 0 12px #a3e635;
+        animation: pulseDot 1.4s ease-in-out infinite;
       }
 
-      .pin-board::before {
+      .neon-metrics {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 10px;
+      }
+
+      .neon-item {
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+        padding: 12px 12px 12px 14px;
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid rgba(255, 255, 255, .13);
+        backdrop-filter: blur(10px);
+        animation: itemRise .7s ease both;
+      }
+
+      .neon-item:nth-child(2) { animation-delay: .08s; }
+      .neon-item:nth-child(3) { animation-delay: .16s; }
+
+      .neon-item::before {
         content: "";
         position: absolute;
-        top: 13px;
-        left: 50%;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        transform: translateX(-50%);
-        background: #ff7875;
-        box-shadow: inset 0 -2px 0 rgba(0,0,0,.12), 0 3px 8px rgba(255, 77, 79, .25);
+        left: 0;
+        top: 12px;
+        bottom: 12px;
+        width: 3px;
+        border-radius: 999px;
+        background: linear-gradient(#22d3ee, #a3e635);
+        box-shadow: 0 0 14px rgba(34, 211, 238, .7);
       }
 
-      .pin-title {
-        margin: 18px 0 12px;
-        font-size: 20px;
-        line-height: 1.2;
+      .neon-item h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        line-height: 1.3;
       }
 
-      .pin-row {
-        display: grid;
-        grid-template-columns: 24px 1fr;
-        gap: 8px;
-        margin: 10px 0;
-        line-height: 1.45;
-        font-size: 14px;
+      .neon-item p {
+        margin: 0;
+        color: rgba(248, 251, 255, .76);
+        font-size: 13px;
+        line-height: 1.5;
       }
 
-      .pin-num {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, .75);
-        display: grid;
-        place-items: center;
-        color: #ad6800;
+      .neon-highlight {
+        color: #bef264;
         font-weight: 800;
       }
 
-      .ticket-board {
-        background: #fff;
-        border: 1px solid #d6e4ff;
-        box-shadow: 0 12px 26px rgba(22, 119, 255, 0.12);
-      }
-
-      .ticket-head {
-        padding: 14px 15px;
-        background: linear-gradient(135deg, #1677ff, #69b1ff);
-        color: #fff;
-      }
-
-      .ticket-head span {
-        display: inline-block;
-        margin-bottom: 5px;
-        font-size: 11px;
-        opacity: .85;
-      }
-
-      .ticket-head h2 {
-        margin: 0;
-        font-size: 20px;
-      }
-
-      .ticket-body {
-        padding: 14px 15px 16px;
-      }
-
-      .ticket-item {
-        padding: 10px 0;
-        border-bottom: 1px dashed #d9d9d9;
-      }
-
-      .ticket-item:last-child {
-        border-bottom: 0;
-      }
-
-      .ticket-item b {
-        display: block;
-        margin-bottom: 4px;
-        font-size: 14px;
-      }
-
-      .ticket-item span {
-        color: #666;
-        line-height: 1.45;
-        font-size: 13px;
-      }
-
-      .glow-board {
-        padding: 15px;
-        background:
-          linear-gradient(#fff, #fff) padding-box,
-          linear-gradient(135deg, #ff7a45, #ffd666, #69b1ff) border-box;
-        border: 2px solid transparent;
-        box-shadow: 0 14px 34px rgba(22, 119, 255, .12);
-      }
-
-      .glow-top {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 14px;
-      }
-
-      .glow-top h2 {
-        margin: 0;
-        font-size: 20px;
-      }
-
-      .glow-badge {
-        border-radius: 999px;
-        padding: 3px 8px;
-        background: #fff7e6;
-        color: #d46b08;
-        font-size: 11px;
-        font-weight: 700;
-      }
-
-      .glow-block {
-        border-radius: 13px;
-        padding: 11px 12px;
-        margin-top: 9px;
-        background: #fafafa;
-        border: 1px solid #f0f0f0;
-      }
-
-      .glow-block strong {
-        display: block;
-        margin-bottom: 4px;
-        font-size: 14px;
-      }
-
-      .glow-block p {
-        margin: 0;
-        color: #666;
-        font-size: 13px;
-        line-height: 1.48;
-      }
-
-      .mini-float {
-        padding: 14px;
-        background: rgba(255, 255, 255, .82);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, .9);
-        box-shadow: 0 14px 30px rgba(0,0,0,.1);
-      }
-
-      .mini-float h2 {
-        margin: 0 0 10px;
-        font-size: 19px;
-      }
-
-      .float-grid {
+      .neon-foot {
+        position: relative;
+        z-index: 1;
+        margin-top: 13px;
         display: grid;
-        gap: 8px;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
       }
 
-      .float-pill {
-        border-radius: 999px;
-        padding: 9px 11px;
-        background: #f5f8ff;
-        color: #1f1f1f;
+      .neon-mini {
+        border-radius: 14px;
+        padding: 10px;
+        background: rgba(34, 211, 238, .1);
+        border: 1px solid rgba(34, 211, 238, .2);
+      }
+
+      .neon-mini span {
+        display: block;
+        margin-bottom: 3px;
+        color: #93c5fd;
+        font-size: 11px;
+      }
+
+      .neon-mini b {
+        display: block;
+        font-size: 14px;
+      }
+
+      .variant-row {
+        display: grid;
+        gap: 12px;
+      }
+
+      .small-neon {
+        position: relative;
+        overflow: hidden;
+        border-radius: 18px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #dbeafe;
+        box-shadow: 0 12px 30px rgba(37, 99, 235, .09);
+      }
+
+      .small-neon::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top right, rgba(34,211,238,.22), transparent 46%);
+        pointer-events: none;
+      }
+
+      .small-neon h3 {
+        position: relative;
+        margin: 0 0 8px;
+        font-size: 17px;
+      }
+
+      .small-neon p {
+        position: relative;
+        margin: 0;
+        color: #595959;
         font-size: 13px;
-        line-height: 1.35;
+        line-height: 1.55;
       }
 
-      .float-pill b {
-        color: #1677ff;
+      @keyframes neonBorder {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 240% 50%; }
+      }
+
+      @keyframes scanLine {
+        0%, 18% { transform: translateY(-120%) rotate(-18deg); opacity: 0; }
+        35% { opacity: .9; }
+        68%, 100% { transform: translateY(370%) rotate(-18deg); opacity: 0; }
+      }
+
+      @keyframes pulseDot {
+        0%, 100% { transform: scale(.86); opacity: .65; }
+        50% { transform: scale(1.18); opacity: 1; }
+      }
+
+      @keyframes boardFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+      }
+
+      @keyframes itemRise {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: .01ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+        }
       }
 
       @media (max-width: 980px) {
-        .page-shell {
-          grid-template-columns: 1fr;
-        }
-
-        .side-demo {
-          position: static;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
+        .page-shell { grid-template-columns: 1fr; }
+        .side-demo { position: static; }
       }
 
       @media (max-width: 640px) {
         body { padding: 16px; }
-        .side-demo { grid-template-columns: 1fr; }
       }
     </style>
   </head>
   <body>
     <div class="page-shell">
       <aside class="side-demo">
-        <div>
-          <p class="side-label">方案 A：便利贴，有一点活泼</p>
-          <section class="side-card pin-board">
-            <h2 class="pin-title">销售提醒</h2>
-            <div class="pin-row"><span class="pin-num">1</span><span><b>8.20-9.23</b><br />4选1 + 6选2</span></div>
-            <div class="pin-row"><span class="pin-num">2</span><span>有品可能下架/替换<br />提醒尽快锁定</span></div>
-            <div class="pin-row"><span class="pin-num">3</span><span>8.26-9.8<br />看开学季模块</span></div>
-          </section>
-        </div>
+        <p class="demo-label">主方案：票根 + 彩边卡合体，科技荧光版</p>
+        <section class="neon-board">
+          <div class="neon-noise"></div>
+          <header class="neon-head">
+            <div>
+              <p class="neon-kicker">SALES NOTE</p>
+              <h2 class="neon-title">开学季提醒</h2>
+            </div>
+            <span class="neon-live">内部</span>
+          </header>
 
-        <div>
-          <p class="side-label">方案 B：活动票根，比较 fancy</p>
-          <section class="side-card ticket-board">
-            <div class="ticket-head">
-              <span>SALES NOTE</span>
-              <h2>开学季提醒</h2>
-            </div>
-            <div class="ticket-body">
-              <div class="ticket-item"><b>长期赠品</b><span>8.20-9.23<br />主礼 4选1，副礼 6选2</span></div>
-              <div class="ticket-item"><b>催单抓手</b><span>赠品可能下架或替换，喜欢就先锁定。</span></div>
-              <div class="ticket-item"><b>特别活动</b><span>8.26-9.8 看单独模块。</span></div>
-            </div>
-          </section>
-        </div>
+          <div class="neon-metrics">
+            <article class="neon-item">
+              <h3>长期赠品</h3>
+              <p><span class="neon-highlight">8.20-9.23</span>，主礼包 4选1，副礼包 6选2。</p>
+            </article>
+            <article class="neon-item">
+              <h3>锁单提醒</h3>
+              <p>期间赠品可能下架或替换，喜欢的品建议尽快锁定。</p>
+            </article>
+            <article class="neon-item">
+              <h3>特别活动</h3>
+              <p><span class="neon-highlight">8.26-9.8</span> 开启开学季，规则看单独活动模块。</p>
+            </article>
+          </div>
 
-        <div>
-          <p class="side-label">方案 C：彩边卡，醒目但不黑</p>
-          <section class="side-card glow-board">
-            <div class="glow-top">
-              <h2>销售提醒</h2>
-              <span class="glow-badge">内部</span>
-            </div>
-            <div class="glow-block"><strong>常规赠品</strong><p>8.20-9.23，主礼包 4选1，副礼包 6选2。</p></div>
-            <div class="glow-block"><strong>锁单提醒</strong><p>期间赠品可能下架/替换，建议家长尽快下单锁定。</p></div>
-            <div class="glow-block"><strong>开学季活动</strong><p>8.26-9.8，规则看单独活动模块。</p></div>
-          </section>
-        </div>
+          <div class="neon-foot">
+            <div class="neon-mini"><span>英语系统课</span><b>最强大脑 +1</b></div>
+            <div class="neon-mini"><span>所有学科</span><b>抽奖机会 +1</b></div>
+          </div>
+        </section>
 
-        <div>
-          <p class="side-label">方案 D：玻璃浮窗，最轻</p>
-          <section class="side-card mini-float">
-            <h2>销售提醒</h2>
-            <div class="float-grid">
-              <div class="float-pill"><b>长期</b> 8.20-9.23｜4选1+6选2</div>
-              <div class="float-pill"><b>催单</b> 赠品可能下架/替换</div>
-              <div class="float-pill"><b>活动</b> 8.26-9.8 开学季</div>
-            </div>
-          </section>
+        <div class="variant-row">
+          <div class="small-neon">
+            <h3>更轻版本</h3>
+            <p>如果主方案太亮，可以保留荧光边和信息卡，去掉深色底。</p>
+          </div>
+          <div class="small-neon">
+            <h3>更强版本</h3>
+            <p>可以把顶部做成可折叠胶囊，点击展开完整规则。</p>
+          </div>
         </div>
       </aside>
 
