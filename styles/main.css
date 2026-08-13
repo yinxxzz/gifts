@@ -191,10 +191,10 @@ html.is-embed .page {
 
 .copy-text-btn {
   appearance: none;
-  border: 1px solid #eeeeee;
+  border: 1px solid #d6e4ff;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.92);
-  color: #9a9a9a;
+  color: #1677ff;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
@@ -213,6 +213,7 @@ html.is-embed .page {
 }
 
 .copy-corner-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -226,6 +227,31 @@ html.is-embed .page {
 
 .copy-corner-btn:active {
   transform: translateY(1px);
+}
+
+.copy-corner-btn::after {
+  content: attr(data-copy-tip);
+  position: absolute;
+  top: -30px;
+  right: 0;
+  z-index: 5;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(26, 26, 26, 0.82);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.2;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.copy-corner-btn:hover::after,
+.copy-corner-btn:focus-visible::after,
+.copy-corner-btn.is-copied::after {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .copy-label {

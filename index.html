@@ -10,7 +10,7 @@
     <link rel="icon" href="favicon.png?v=2" type="image/png" sizes="32x32" />
     <link rel="icon" href="favicon.svg?v=2" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="favicon.png?v=2" />
-    <link rel="stylesheet" href="styles/main.css?v=20260813-copy-lite" />
+    <link rel="stylesheet" href="styles/main.css?v=20260813-copy-hint" />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   </head>
@@ -464,7 +464,9 @@
       function showCopyFeedback(button) {
         const label = button.querySelector(".copy-label");
         const original = button.dataset.originalText || label?.textContent || button.textContent;
+        const originalTip = button.dataset.copyTip || original;
         button.dataset.originalText = original;
+        button.dataset.copyTip = "已复制";
         if (label) {
           label.textContent = "已复制";
         } else {
@@ -477,6 +479,7 @@
           } else {
             button.textContent = button.dataset.originalText || original;
           }
+          button.dataset.copyTip = originalTip;
           button.classList.remove("is-copied");
         }, 1200);
       }
@@ -677,6 +680,7 @@
                   data-period-id="${periodId}"
                   data-bundle-id="${bundleId}"
                   data-gift-name="${escapeHtml(gift.name)}"
+                  data-copy-tip="复制"
                   title="复制卖点"
                   aria-label="复制卖点"
                 ><span class="copy-icon" aria-hidden="true"></span><span class="copy-label">复制</span></button>
@@ -755,6 +759,7 @@
                 data-copy-type="bundle"
                 data-period-id="${periodId}"
                 data-bundle-id="${bundle.id}"
+                data-copy-tip="复制"
                 title="复制礼包话术"
                 aria-label="复制礼包话术"
               ><span class="copy-icon" aria-hidden="true"></span><span class="copy-label">复制</span></button>
@@ -869,6 +874,7 @@
               class="copy-text-btn copy-corner-btn summary-copy-btn"
               data-copy-type="period"
               data-period-id="${period.id}"
+              data-copy-tip="复制"
               title="复制本期话术"
               aria-label="复制本期话术"
             ><span class="copy-icon" aria-hidden="true"></span><span class="copy-label">复制</span></button>
