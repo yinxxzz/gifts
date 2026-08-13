@@ -188,9 +188,10 @@
           radial-gradient(circle at 52% 50%, rgba(217,70,239,.75) 0 2px, transparent 3px),
           radial-gradient(circle at 82% 50%, rgba(163,230,53,.8) 0 2px, transparent 3px),
           linear-gradient(90deg, transparent 0%, rgba(34,211,238,.48) 18%, rgba(59,130,246,.34) 34%, rgba(217,70,239,.42) 58%, rgba(34,211,238,.46) 78%, transparent 100%);
+        background-size: 160% 100%;
         clip-path: polygon(0 55%, 18% 38%, 36% 62%, 55% 30%, 76% 56%, 100% 40%, 100% 52%, 76% 68%, 55% 44%, 36% 76%, 18% 52%, 0 68%);
         filter: blur(.15px) drop-shadow(0 0 8px rgba(59,130,246,.36));
-        animation: lightRibbon 5.2s ease-in-out infinite;
+        animation: lightRibbon 6.4s ease-in-out infinite;
         pointer-events: none;
       }
 
@@ -205,32 +206,42 @@
 
       .edge-line.top {
         top: 0;
-        left: 42px;
-        width: 118px;
+        left: 26px;
+        width: 150px;
         height: 2px;
         color: #38bdf8;
         background: linear-gradient(90deg, transparent, #38bdf8, #d946ef, transparent);
-        animation: openTop 3.8s ease-in-out infinite;
+        animation: edgeTop 5.6s linear infinite;
       }
 
       .edge-line.left {
-        top: 118px;
+        top: 92px;
         left: 0;
         width: 2px;
-        height: 118px;
+        height: 150px;
         color: #22d3ee;
         background: linear-gradient(180deg, transparent, #22d3ee, #a3e635, transparent);
-        animation: openLeft 4.4s ease-in-out infinite;
+        animation: edgeLeft 5.6s linear infinite;
       }
 
       .edge-line.corner {
-        right: 16px;
+        right: 26px;
         bottom: 0;
-        width: 96px;
+        width: 150px;
         height: 2px;
         color: #a3e635;
         background: linear-gradient(90deg, transparent, #22d3ee, #a3e635, transparent);
-        animation: openCorner 4.1s ease-in-out infinite;
+        animation: edgeBottom 5.6s linear infinite;
+      }
+
+      .edge-line.right {
+        right: 0;
+        top: 92px;
+        width: 2px;
+        height: 150px;
+        color: #d946ef;
+        background: linear-gradient(180deg, transparent, #d946ef, #38bdf8, transparent);
+        animation: edgeRight 5.6s linear infinite;
       }
 
       .neon-noise {
@@ -501,9 +512,21 @@
       }
 
       @keyframes lightRibbon {
-        0%, 100% { transform: translateX(-3%); opacity: .42; }
-        45% { transform: translateX(5%); opacity: .78; }
-        70% { transform: translateX(1%); opacity: .56; }
+        0%, 100% {
+          transform: translateX(-4%);
+          background-position: 0% 50%;
+          opacity: .42;
+        }
+        45% {
+          transform: translateX(4%);
+          background-position: 100% 50%;
+          opacity: .78;
+        }
+        70% {
+          transform: translateX(1%);
+          background-position: 58% 50%;
+          opacity: .6;
+        }
       }
 
       @keyframes auroraOrbit {
@@ -521,19 +544,28 @@
         }
       }
 
-      @keyframes openTop {
-        0%, 100% { transform: translateX(-22px); opacity: .42; }
-        50% { transform: translateX(64px); opacity: 1; }
+      @keyframes edgeTop {
+        0% { transform: translateX(-46px); opacity: .22; }
+        22%, 40% { transform: translateX(270px); opacity: .95; }
+        55%, 100% { transform: translateX(560px); opacity: .08; }
       }
 
-      @keyframes openLeft {
-        0%, 100% { transform: translateY(-24px); opacity: .45; }
-        52% { transform: translateY(58px); opacity: .95; }
+      @keyframes edgeRight {
+        0%, 22% { transform: translateY(-150px); opacity: .08; }
+        42%, 58% { transform: translateY(92px); opacity: .95; }
+        76%, 100% { transform: translateY(360px); opacity: .08; }
       }
 
-      @keyframes openCorner {
-        0%, 100% { transform: translateX(26px); opacity: .38; }
-        50% { transform: translateX(-58px); opacity: .92; }
+      @keyframes edgeBottom {
+        0%, 42% { transform: translateX(260px); opacity: .08; }
+        62%, 78% { transform: translateX(-160px); opacity: .95; }
+        100% { transform: translateX(-500px); opacity: .08; }
+      }
+
+      @keyframes edgeLeft {
+        0%, 62% { transform: translateY(320px); opacity: .08; }
+        82%, 96% { transform: translateY(0); opacity: .95; }
+        100% { transform: translateY(-150px); opacity: .18; }
       }
 
       @keyframes pulseDot {
@@ -578,6 +610,7 @@
           <div class="neon-noise"></div>
           <span class="edge-line top"></span>
           <span class="edge-line left"></span>
+          <span class="edge-line right"></span>
           <span class="edge-line corner"></span>
           <header class="neon-head">
             <h2 class="neon-title">9月加赠提醒</h2>
