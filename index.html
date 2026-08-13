@@ -462,12 +462,21 @@
       }
 
       function showCopyFeedback(button) {
-        const original = button.dataset.originalText || button.textContent;
+        const label = button.querySelector(".copy-label");
+        const original = button.dataset.originalText || label?.textContent || button.textContent;
         button.dataset.originalText = original;
-        button.textContent = "已复制";
+        if (label) {
+          label.textContent = "已复制";
+        } else {
+          button.textContent = "已复制";
+        }
         button.classList.add("is-copied");
         window.setTimeout(() => {
-          button.textContent = button.dataset.originalText || original;
+          if (label) {
+            label.textContent = button.dataset.originalText || original;
+          } else {
+            button.textContent = button.dataset.originalText || original;
+          }
           button.classList.remove("is-copied");
         }, 1200);
       }
@@ -655,22 +664,23 @@
             >${shelf.shelfStatusLabel}</span>
             <div class="gift-image">${imgHtml}</div>
             <div class="gift-body">
-              <div class="gift-title-line">
-                <h3>
-                  ${gift.name}
-                  ${gift.isNew ? '<span class="tag-new">新</span>' : ""}
-                  ${highlighted ? '<span class="tag-push">主推</span>' : ""}
-                </h3>
+              <h3>
+                ${gift.name}
+                ${gift.isNew ? '<span class="tag-new">新</span>' : ""}
+                ${highlighted ? '<span class="tag-push">主推</span>' : ""}
+              </h3>
+              <div class="gift-copy-wrap">
                 <button
                   type="button"
-                  class="copy-text-btn gift-copy-btn"
+                  class="copy-text-btn copy-corner-btn gift-copy-btn"
                   data-copy-type="gift"
                   data-period-id="${periodId}"
                   data-bundle-id="${bundleId}"
                   data-gift-name="${escapeHtml(gift.name)}"
-                >复制卖点</button>
-              </div>
-              <ul class="selling-points">
+                  title="复制卖点"
+                  aria-label="复制卖点"
+                ><span class="copy-icon" aria-hidden="true"></span><span class="copy-label">复制</span></button>
+                <ul class="selling-points">
                 ${gift.sellingPoints
                   .map(
                     (s, i) => `
@@ -685,7 +695,8 @@
                 >${escapeHtml(s)}</li>`
                   )
                   .join("")}
-              </ul>
+                </ul>
+              </div>
               ${renderGiftIncludes(gift, periodId, bundleId)}
             </div>
           </article>`;
@@ -740,11 +751,13 @@
                 ? `<div class="bundle-script-wrap">
               <button
                 type="button"
-                class="copy-text-btn bundle-copy-btn"
+                class="copy-text-btn copy-corner-btn bundle-copy-btn"
                 data-copy-type="bundle"
                 data-period-id="${periodId}"
                 data-bundle-id="${bundle.id}"
-              >复制礼包话术</button>
+                title="复制礼包话术"
+                aria-label="复制礼包话术"
+              ><span class="copy-icon" aria-hidden="true"></span><span class="copy-label">复制</span></button>
               <div
                 class="bundle-sales-script ops-editable"
                 spellcheck="false"
@@ -836,14 +849,6 @@
             </div>
             ${renderPeriodSelect(period.id)}
             <div class="header-actions">
-              <button
-                type="button"
-                class="copy-text-btn header-copy-btn"
-                data-copy-type="period"
-                data-period-id="${period.id}"
-              >
-                复制本期话术
-              </button>
               <button type="button" class="download-images-btn" id="download-images-btn">
                 下载全部图片
               </button>
@@ -859,6 +864,14 @@
           </header>
 
           <section class="summary-card">
+            <button
+              type="button"
+              class="copy-text-btn copy-corner-btn summary-copy-btn"
+              data-copy-type="period"
+              data-period-id="${period.id}"
+              title="复制本期话术"
+              aria-label="复制本期话术"
+            ><span class="copy-icon" aria-hidden="true"></span><span class="copy-label">复制</span></button>
             <h2>策略介绍 · 说给家长</h2>
             <div
               class="summary-body ops-editable"
