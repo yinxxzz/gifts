@@ -146,23 +146,25 @@
 
       .neon-aurora {
         position: absolute;
-        inset: -34%;
+        left: 50%;
+        top: 50%;
+        width: 520px;
+        height: 520px;
+        margin: -260px 0 0 -260px;
         z-index: 0;
         pointer-events: none;
-        opacity: .72;
+        opacity: .5;
+        border-radius: 50%;
         background:
-          conic-gradient(from 18deg at 52% 46%,
-            rgba(34, 211, 238, .30),
-            rgba(59, 130, 246, .12) 18%,
-            rgba(217, 70, 239, .24) 34%,
-            rgba(255, 255, 255, 0) 50%,
-            rgba(163, 230, 53, .20) 66%,
-            rgba(34, 211, 238, .18) 82%,
-            rgba(34, 211, 238, .30)),
-          radial-gradient(circle at 50% 48%, rgba(255, 255, 255, .28), transparent 42%);
-        filter: blur(5px);
-        transform: rotate(0deg) scale(1.02);
-        animation: auroraOrbit 12s linear infinite;
+          radial-gradient(ellipse at 18% 48%, rgba(34, 211, 238, .58), transparent 28%),
+          radial-gradient(ellipse at 52% 14%, rgba(217, 70, 239, .42), transparent 24%),
+          radial-gradient(ellipse at 86% 58%, rgba(163, 230, 53, .36), transparent 26%),
+          radial-gradient(ellipse at 48% 88%, rgba(59, 130, 246, .28), transparent 24%);
+        filter: blur(18px);
+        transform: rotate(0deg);
+        transform-origin: 50% 50%;
+        will-change: transform;
+        animation: auroraOrbit 13s linear infinite;
       }
 
       .neon-board::before {
@@ -417,16 +419,16 @@
 
       @keyframes auroraOrbit {
         0% {
-          transform: rotate(0deg) scale(1.02);
-          opacity: .68;
+          transform: rotate(0deg);
+          opacity: .44;
         }
         50% {
-          transform: rotate(180deg) scale(1.06);
-          opacity: .82;
+          transform: rotate(180deg);
+          opacity: .58;
         }
         100% {
-          transform: rotate(360deg) scale(1.02);
-          opacity: .68;
+          transform: rotate(360deg);
+          opacity: .44;
         }
       }
 
