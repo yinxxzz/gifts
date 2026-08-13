@@ -323,8 +323,8 @@
 
       .timeline-scale {
         position: relative;
-        height: 34px;
-        margin: 8px 0 8px;
+        height: 28px;
+        margin: 6px 0 2px;
         color: #8c8c8c;
         font-size: 11px;
         font-weight: 700;
@@ -385,7 +385,7 @@
       .gantt-axis {
         position: relative;
         display: grid;
-        gap: 7px;
+        gap: 3px;
       }
 
       .gantt-track {
@@ -421,39 +421,30 @@
         left: 0;
         width: 100%;
         overflow: hidden;
-        background: linear-gradient(90deg, #22d3ee, #1677ff, #d946ef);
-      }
-
-      .gantt-bar.full::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        background: linear-gradient(90deg,
-          transparent 0%,
-          rgba(255,255,255,.55) 18%,
-          rgba(163,230,53,.34) 34%,
-          transparent 55%);
-        transform: translateX(-80%);
-        animation: barFlow 3.4s linear infinite;
+        background: linear-gradient(90deg, #22d3ee, #1677ff, #d946ef, #22d3ee);
+        background-size: 220% 100%;
+        animation: barFlow 5s linear infinite;
       }
 
       .gantt-event-note {
         position: absolute;
         left: 18%;
-        top: 37px;
-        width: 38%;
+        top: 31px;
+        width: max-content;
+        max-width: 38%;
         z-index: 2;
-        padding: 2px 5px;
+        padding: 2px 7px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, .82);
+        background: rgba(255, 255, 255, .9);
         border: 1px solid rgba(186, 230, 253, .9);
         box-shadow: 0 4px 12px rgba(22, 119, 255, .12);
         text-align: center;
         color: #1677ff;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 800;
-        line-height: 1.2;
+        line-height: 1.1;
+        white-space: nowrap;
+        transform: translateX(-4px);
         pointer-events: none;
       }
 
@@ -594,8 +585,8 @@
       }
 
       @keyframes barFlow {
-        from { transform: translateX(-80%); }
-        to { transform: translateX(130%); }
+        from { background-position: 0% 50%; }
+        to { background-position: 220% 50%; }
       }
 
       @keyframes itemRise {
@@ -650,7 +641,7 @@
                   <div class="gantt-track">
                     <span class="gantt-bar full"></span>
                   </div>
-                  <span class="gantt-event-note">8.26-9.8 开学季活动</span>
+                  <span class="gantt-event-note">开学季 8.26-9.8</span>
                 </div>
                 <div class="gantt-copy">
                   <span class="gantt-label">常规加赠</span>
