@@ -354,9 +354,12 @@
         position: relative;
         height: 26px;
         border-radius: 999px;
-        background: rgba(234, 246, 255, .82);
-        border: 1px solid rgba(186, 230, 253, .92);
+        background: rgba(229, 244, 255, .72);
+        border: 1px solid rgba(147, 197, 253, .5);
         overflow: hidden;
+        box-shadow:
+          inset 0 1px 3px rgba(15, 23, 42, .06),
+          inset 0 -1px 4px rgba(255,255,255,.75);
       }
 
       .gantt-track::before {
@@ -371,14 +374,30 @@
           transparent 56.5%);
       }
 
+      .gantt-track::after {
+        content: "";
+        position: absolute;
+        left: 4%;
+        right: 4%;
+        top: 9px;
+        height: 12px;
+        border-radius: 999px;
+        background: rgba(34, 211, 238, .32);
+        filter: blur(9px);
+        opacity: .68;
+      }
+
       .gantt-bar {
         position: absolute;
-        top: 5px;
-        height: 14px;
+        z-index: 1;
+        top: 6px;
+        height: 12px;
         border-radius: 999px;
         box-shadow:
-          0 6px 16px rgba(34, 211, 238, .22),
-          0 0 18px rgba(124, 109, 242, .16);
+          0 0 0 1px rgba(255,255,255,.45) inset,
+          0 0 10px rgba(34, 211, 238, .52),
+          0 0 24px rgba(59, 130, 246, .32),
+          0 5px 18px rgba(34, 211, 238, .22);
       }
 
       .gantt-bar.full {
@@ -386,19 +405,22 @@
         width: 100%;
         overflow: hidden;
         background:
-          linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,0) 48%, rgba(255,255,255,.18)),
-          linear-gradient(90deg, #4ee7ff 0%, #3b82ff 36%, #b45cff 70%, #68f0d2 100%);
+          radial-gradient(ellipse at 50% 18%, rgba(255,255,255,.96) 0%, rgba(255,255,255,.58) 18%, transparent 46%),
+          linear-gradient(180deg, rgba(255,255,255,.42) 0%, rgba(255,255,255,.08) 38%, rgba(0,178,255,.34) 100%),
+          linear-gradient(90deg, #45eaff 0%, #19b9ff 38%, #4c7dff 72%, #46f1dc 100%);
       }
 
       .gantt-bar.full::after {
         content: "";
         position: absolute;
-        inset: 1px 2px auto;
-        height: 4px;
+        left: 5%;
+        right: 5%;
+        top: 2px;
+        height: 2px;
         border-radius: 999px;
-        background: rgba(255,255,255,.55);
-        filter: blur(.2px);
-        opacity: .82;
+        background: rgba(255,255,255,.78);
+        filter: blur(.6px);
+        opacity: .95;
       }
 
       .note-list {
