@@ -642,6 +642,73 @@ html.is-embed .page {
   padding-right: 34px;
 }
 
+.sales-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 18px;
+  align-items: start;
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: #202422;
+  color: #f5f5f0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+}
+
+.sales-board-title {
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  padding-right: 16px;
+}
+
+.sales-board-title span {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #d9f7be;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.sales-board-title h2 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  line-height: 1.35;
+  color: #fff;
+}
+
+.sales-board ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sales-board li {
+  position: relative;
+  margin: 0 0 8px;
+  padding-left: 14px;
+  font-size: var(--font-size-sm);
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.sales-board li:last-child {
+  margin-bottom: 0;
+}
+
+.sales-board li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.78em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #95de64;
+}
+
 .ops-editable {
   outline: none;
   cursor: inherit;
@@ -1504,6 +1571,19 @@ html.is-embed .page {
 }
 
 @media (max-width: 480px) {
+  .sales-board {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .sales-board-title {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    padding-right: 0;
+    padding-bottom: 10px;
+  }
+
   .gift-card {
     grid-template-columns: 60px 1fr;
     gap: 12px;
