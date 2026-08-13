@@ -134,15 +134,14 @@
         min-height: 392px;
         border-radius: 24px;
         padding: 18px;
-        color: #f8fbff;
+        color: #242424;
         background:
-          radial-gradient(circle at 16% 8%, rgba(56, 189, 248, .36), transparent 28%),
-          radial-gradient(circle at 92% 18%, rgba(217, 70, 239, .26), transparent 31%),
-          linear-gradient(155deg, #09111f 0%, #101827 54%, #111827 100%);
+          radial-gradient(circle at 14% 8%, rgba(34, 211, 238, .18), transparent 30%),
+          radial-gradient(circle at 92% 12%, rgba(168, 85, 247, .14), transparent 34%),
+          linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(248,251,255,.94) 100%);
         box-shadow:
-          0 18px 42px rgba(12, 37, 78, .28),
-          inset 0 0 0 1px rgba(255,255,255,.12);
-        animation: boardFloat 5.5s ease-in-out infinite;
+          0 18px 42px rgba(37, 99, 235, .12),
+          inset 0 0 0 1px rgba(255,255,255,.9);
       }
 
       .neon-board::before {
@@ -151,7 +150,7 @@
         inset: 0;
         padding: 1.5px;
         border-radius: inherit;
-        background: linear-gradient(135deg, #3b82f6, #22d3ee, #a3e635, #f59e0b, #3b82f6);
+        background: linear-gradient(135deg, #38bdf8, #818cf8, #d946ef, #22d3ee, #a3e635, #38bdf8);
         background-size: 240% 240%;
         -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
         -webkit-mask-composite: xor;
@@ -163,25 +162,29 @@
       .neon-board::after {
         content: "";
         position: absolute;
-        left: -30%;
-        top: -20%;
-        width: 160%;
-        height: 42%;
-        background: linear-gradient(180deg, transparent, rgba(255,255,255,.14), transparent);
-        transform: rotate(-18deg);
-        animation: scanLine 4.2s ease-in-out infinite;
+        left: -22%;
+        top: 58px;
+        width: 148%;
+        height: 82px;
+        background:
+          radial-gradient(circle, rgba(255,255,255,.9) 0 1px, transparent 2px),
+          linear-gradient(90deg, transparent 0%, rgba(34,211,238,.05) 9%, rgba(59,130,246,.45) 26%, rgba(217,70,239,.5) 52%, rgba(34,211,238,.42) 78%, transparent 100%);
+        background-size: 16px 16px, 100% 100%;
+        clip-path: polygon(0 58%, 14% 35%, 31% 56%, 47% 25%, 65% 52%, 82% 28%, 100% 44%, 100% 62%, 82% 46%, 65% 70%, 47% 42%, 31% 74%, 14% 52%, 0 76%);
+        filter: drop-shadow(0 0 12px rgba(59,130,246,.45));
+        animation: lightRibbon 5.2s ease-in-out infinite;
         pointer-events: none;
       }
 
       .neon-noise {
         position: absolute;
         inset: 0;
-        opacity: .16;
+        opacity: .28;
         pointer-events: none;
         background-image:
-          linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
-        background-size: 18px 18px;
+          linear-gradient(rgba(22,119,255,.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(22,119,255,.05) 1px, transparent 1px);
+        background-size: 20px 20px;
       }
 
       .neon-head {
@@ -196,7 +199,7 @@
 
       .neon-kicker {
         margin: 0 0 5px;
-        color: #67e8f9;
+        color: #1677ff;
         font-size: 11px;
         font-weight: 800;
         letter-spacing: .08em;
@@ -206,7 +209,7 @@
         margin: 0;
         font-size: 25px;
         line-height: 1.15;
-        text-shadow: 0 0 18px rgba(34, 211, 238, .32);
+        color: #1f1f1f;
       }
 
       .neon-live {
@@ -216,9 +219,9 @@
         gap: 6px;
         border-radius: 999px;
         padding: 5px 9px;
-        background: rgba(34, 211, 238, .14);
-        color: #cffafe;
-        border: 1px solid rgba(103, 232, 249, .35);
+        background: #f0f7ff;
+        color: #1677ff;
+        border: 1px solid #bae0ff;
         font-size: 11px;
         font-weight: 700;
       }
@@ -245,9 +248,10 @@
         overflow: hidden;
         border-radius: 16px;
         padding: 12px 12px 12px 14px;
-        background: rgba(255, 255, 255, .08);
-        border: 1px solid rgba(255, 255, 255, .13);
-        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, .78);
+        border: 1px solid rgba(214, 228, 255, .9);
+        box-shadow: 0 8px 18px rgba(22,119,255,.06);
+        backdrop-filter: blur(12px);
         animation: itemRise .7s ease both;
       }
 
@@ -274,13 +278,13 @@
 
       .neon-item p {
         margin: 0;
-        color: rgba(248, 251, 255, .76);
+        color: #595959;
         font-size: 13px;
         line-height: 1.5;
       }
 
       .neon-highlight {
-        color: #bef264;
+        color: #1677ff;
         font-weight: 800;
       }
 
@@ -296,14 +300,14 @@
       .neon-mini {
         border-radius: 14px;
         padding: 10px;
-        background: rgba(34, 211, 238, .1);
-        border: 1px solid rgba(34, 211, 238, .2);
+        background: linear-gradient(180deg, rgba(240,247,255,.9), rgba(255,255,255,.75));
+        border: 1px solid #d6e4ff;
       }
 
       .neon-mini span {
         display: block;
         margin-bottom: 3px;
-        color: #93c5fd;
+        color: #1677ff;
         font-size: 11px;
       }
 
@@ -354,20 +358,15 @@
         100% { background-position: 240% 50%; }
       }
 
-      @keyframes scanLine {
-        0%, 18% { transform: translateY(-120%) rotate(-18deg); opacity: 0; }
-        35% { opacity: .9; }
-        68%, 100% { transform: translateY(370%) rotate(-18deg); opacity: 0; }
+      @keyframes lightRibbon {
+        0%, 100% { transform: translateX(-4%) translateY(0); opacity: .48; }
+        45% { transform: translateX(6%) translateY(8px); opacity: .88; }
+        70% { transform: translateX(2%) translateY(-4px); opacity: .62; }
       }
 
       @keyframes pulseDot {
         0%, 100% { transform: scale(.86); opacity: .65; }
         50% { transform: scale(1.18); opacity: 1; }
-      }
-
-      @keyframes boardFloat {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-4px); }
       }
 
       @keyframes itemRise {
@@ -396,7 +395,7 @@
   <body>
     <div class="page-shell">
       <aside class="side-demo">
-        <p class="demo-label">主方案：票根 + 彩边卡合体，科技荧光版</p>
+        <p class="demo-label">主方案：票根 + 彩边卡合体，浅色科技荧光版</p>
         <section class="neon-board">
           <div class="neon-noise"></div>
           <header class="neon-head">
