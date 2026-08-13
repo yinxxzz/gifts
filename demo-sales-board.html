@@ -354,8 +354,8 @@
         position: relative;
         height: 26px;
         border-radius: 999px;
-        background: rgba(240, 247, 255, .9);
-        border: 1px solid rgba(214, 228, 255, .95);
+        background: rgba(234, 246, 255, .82);
+        border: 1px solid rgba(186, 230, 253, .92);
         overflow: hidden;
       }
 
@@ -376,14 +376,29 @@
         top: 5px;
         height: 14px;
         border-radius: 999px;
-        box-shadow: 0 5px 14px rgba(22, 119, 255, .12);
+        box-shadow:
+          0 6px 16px rgba(34, 211, 238, .22),
+          0 0 18px rgba(124, 109, 242, .16);
       }
 
       .gantt-bar.full {
         left: 0;
         width: 100%;
         overflow: hidden;
-        background: linear-gradient(90deg, #32c7e8 0%, #2488ff 52%, #7c6df2 100%);
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,0) 48%, rgba(255,255,255,.18)),
+          linear-gradient(90deg, #4ee7ff 0%, #3b82ff 36%, #b45cff 70%, #68f0d2 100%);
+      }
+
+      .gantt-bar.full::after {
+        content: "";
+        position: absolute;
+        inset: 1px 2px auto;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.55);
+        filter: blur(.2px);
+        opacity: .82;
       }
 
       .note-list {
