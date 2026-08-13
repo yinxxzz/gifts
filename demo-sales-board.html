@@ -316,11 +316,22 @@
 
       .timeline-scale {
         position: relative;
-        height: 18px;
-        margin: 8px 0 10px;
+        height: 34px;
+        margin: 8px 0 12px 68px;
         color: #8c8c8c;
         font-size: 11px;
         font-weight: 700;
+      }
+
+      .timeline-scale::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 22px;
+        height: 2px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(34,211,238,.55), rgba(22,119,255,.35), rgba(217,70,239,.55));
       }
 
       .timeline-scale span {
@@ -329,10 +340,35 @@
         transform: translateX(-50%);
       }
 
+      .timeline-scale span::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 19px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #1677ff;
+        box-shadow: 0 0 10px rgba(22,119,255,.35);
+        transform: translateX(-50%);
+      }
+
       .timeline-scale span:nth-child(1) { left: 0; transform: none; }
       .timeline-scale span:nth-child(2) { left: 18%; }
       .timeline-scale span:nth-child(3) { left: 56%; }
       .timeline-scale span:nth-child(4) { right: 0; transform: none; }
+
+      .timeline-scale span:nth-child(1)::after {
+        left: 0;
+        transform: none;
+      }
+
+      .timeline-scale span:nth-child(4)::after {
+        left: auto;
+        right: 0;
+        transform: none;
+      }
 
       .gantt {
         display: grid;
@@ -341,27 +377,23 @@
 
       .gantt-row {
         display: grid;
-        gap: 7px;
+        grid-template-columns: 58px 1fr;
+        align-items: start;
+        column-gap: 10px;
+        row-gap: 5px;
       }
 
       .gantt-row-head {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 8px;
+        display: contents;
       }
 
       .gantt-label {
+        grid-row: 1 / span 2;
         color: #262626;
         font-size: 13px;
         font-weight: 800;
-      }
-
-      .gantt-date {
-        flex: 0 0 auto;
-        color: #8c8c8c;
-        font-size: 11px;
-        font-weight: 800;
+        line-height: 1.25;
+        padding-top: 5px;
       }
 
       .gantt-track {
@@ -406,6 +438,7 @@
       }
 
       .gantt-note {
+        grid-column: 2;
         margin: 0;
         color: #595959;
         font-size: 12px;
@@ -568,7 +601,6 @@
                 <div class="gantt-row">
                   <div class="gantt-row-head">
                     <span class="gantt-label">常规加赠</span>
-                    <span class="gantt-date">8.20-9.23</span>
                   </div>
                   <div class="gantt-track">
                     <span class="gantt-bar full"></span>
@@ -578,7 +610,6 @@
                 <div class="gantt-row">
                   <div class="gantt-row-head">
                     <span class="gantt-label">开学季活动</span>
-                    <span class="gantt-date">8.26-9.8</span>
                   </div>
                   <div class="gantt-track">
                     <span class="gantt-bar event"></span>
