@@ -172,16 +172,16 @@
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        padding: 1.5px;
+        padding: 2.5px;
         background:
           conic-gradient(from var(--edge-angle),
-            rgba(125, 211, 252, .42) 0deg,
-            rgba(125, 211, 252, .42) 72deg,
-            rgba(167, 139, 250, .78) 98deg,
-            rgba(244, 114, 182, .72) 124deg,
-            rgba(45, 212, 191, .72) 156deg,
-            rgba(125, 211, 252, .42) 204deg,
-            rgba(125, 211, 252, .42) 360deg);
+            rgba(125, 211, 252, .52) 0deg,
+            rgba(125, 211, 252, .52) 72deg,
+            rgba(167, 139, 250, .9) 98deg,
+            rgba(244, 114, 182, .86) 124deg,
+            rgba(45, 212, 191, .84) 156deg,
+            rgba(125, 211, 252, .52) 204deg,
+            rgba(125, 211, 252, .52) 360deg);
         -webkit-mask:
           linear-gradient(#000 0 0) content-box,
           linear-gradient(#000 0 0);
@@ -190,8 +190,10 @@
           linear-gradient(#000 0 0) content-box,
           linear-gradient(#000 0 0);
         mask-composite: exclude;
-        opacity: .9;
-        filter: drop-shadow(0 0 8px rgba(56, 189, 248, .24));
+        opacity: .96;
+        filter:
+          drop-shadow(0 0 8px rgba(56, 189, 248, .34))
+          drop-shadow(0 0 14px rgba(168, 85, 247, .16));
         animation: edgeOrbit 9s linear infinite;
         pointer-events: none;
       }
