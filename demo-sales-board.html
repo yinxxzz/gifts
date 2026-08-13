@@ -144,6 +144,22 @@
           inset 0 0 0 1px rgba(186, 230, 253, .78);
       }
 
+      .neon-aurora {
+        position: absolute;
+        inset: -28%;
+        z-index: 0;
+        pointer-events: none;
+        opacity: .72;
+        background:
+          radial-gradient(circle at 18% 22%, rgba(34, 211, 238, .36), transparent 28%),
+          radial-gradient(circle at 82% 18%, rgba(217, 70, 239, .28), transparent 30%),
+          radial-gradient(circle at 74% 82%, rgba(163, 230, 53, .24), transparent 26%),
+          linear-gradient(115deg, transparent 22%, rgba(59, 130, 246, .12) 44%, transparent 62%);
+        filter: blur(5px);
+        transform: translate3d(-3%, -2%, 0) scale(1);
+        animation: auroraDrift 8.8s ease-in-out infinite;
+      }
+
       .neon-board::before {
         content: "";
         position: absolute;
@@ -213,6 +229,7 @@
       .neon-noise {
         position: absolute;
         inset: 0;
+        z-index: 0;
         opacity: .28;
         pointer-events: none;
         background-image:
@@ -393,6 +410,21 @@
         70% { transform: translateX(1%); opacity: .56; }
       }
 
+      @keyframes auroraDrift {
+        0%, 100% {
+          transform: translate3d(-3%, -2%, 0) scale(1);
+          opacity: .62;
+        }
+        42% {
+          transform: translate3d(4%, 3%, 0) scale(1.04);
+          opacity: .82;
+        }
+        72% {
+          transform: translate3d(1%, -1%, 0) scale(1.02);
+          opacity: .7;
+        }
+      }
+
       @keyframes openTop {
         0%, 100% { transform: translateX(-22px); opacity: .42; }
         50% { transform: translateX(64px); opacity: 1; }
@@ -441,6 +473,7 @@
       <aside class="side-demo">
         <p class="demo-label">主方案：票根 + 彩边卡合体，浅色科技荧光版</p>
         <section class="neon-board">
+          <div class="neon-aurora"></div>
           <div class="neon-noise"></div>
           <span class="edge-line top"></span>
           <span class="edge-line left"></span>
