@@ -10,7 +10,7 @@
     <link rel="icon" href="favicon.png?v=2" type="image/png" sizes="32x32" />
     <link rel="icon" href="favicon.svg?v=2" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="favicon.png?v=2" />
-    <link rel="stylesheet" href="styles/main.css?v=20260813-sales-board" />
+    <link rel="stylesheet" href="styles/main.css?v=20260813-copy-tip-left" />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   </head>
@@ -928,26 +928,6 @@
           </div>`;
       }
 
-      function renderSalesBoard(period) {
-        const board = period.salesBoard;
-        const items = Array.isArray(board?.items)
-          ? board.items.map((item) => plainText(item).trim()).filter(Boolean)
-          : [];
-        if (!items.length) return "";
-        const title = plainText(board?.title || "销售小黑板").trim() || "销售小黑板";
-
-        return `
-          <section class="sales-board" aria-label="${escapeHtml(title)}">
-            <div class="sales-board-title">
-              <span>内部提醒</span>
-              <h2>${escapeHtml(title)}</h2>
-            </div>
-            <ul>
-              ${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
-            </ul>
-          </section>`;
-      }
-
       function renderPeriod(period) {
         const bundlesHtml = renderBundlesArea(period);
 
@@ -1004,7 +984,6 @@
             >${escapeHtml(period.summary)}</div>
           </section>
 
-          ${renderSalesBoard(period)}
           ${bundlesHtml}
           ${renderOpsHiddenFooter()}`;
       }

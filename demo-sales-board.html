@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>销售提醒 Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f5f5;
+        color: #262626;
+      }
+
+      body {
+        margin: 0;
+        padding: 32px;
+      }
+
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        display: grid;
+        gap: 20px;
+      }
+
+      h1 {
+        margin: 0 0 4px;
+        font-size: 24px;
+      }
+
+      .note {
+        margin: 0 0 10px;
+        color: #8c8c8c;
+        font-size: 14px;
+      }
+
+      .demo-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 18px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      }
+
+      .demo-label {
+        margin: 0 0 12px;
+        color: #8c8c8c;
+        font-size: 13px;
+      }
+
+      .board-soft {
+        border: 1px solid #ffe7ba;
+        border-left: 4px solid #faad14;
+        background: #fffaf0;
+        border-radius: 12px;
+        padding: 16px 18px;
+      }
+
+      .board-soft header,
+      .board-compact header,
+      .board-sticky header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .board-title {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.35;
+      }
+
+      .board-chip {
+        flex: 0 0 auto;
+        border-radius: 999px;
+        padding: 3px 9px;
+        font-size: 12px;
+        background: rgba(250, 173, 20, 0.14);
+        color: #ad6800;
+      }
+
+      .board-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 8px;
+      }
+
+      .board-list li {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        gap: 8px;
+        line-height: 1.55;
+        font-size: 15px;
+      }
+
+      .board-list b {
+        color: #262626;
+      }
+
+      .dot {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff1b8;
+        color: #ad6800;
+        display: inline-grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .board-compact {
+        border: 1px solid #e8e8e8;
+        background: #fff;
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+
+      .board-compact .board-chip {
+        background: #f0f5ff;
+        color: #1677ff;
+      }
+
+      .board-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .mini {
+        border-radius: 10px;
+        background: #fafafa;
+        padding: 12px;
+        border: 1px solid #f0f0f0;
+      }
+
+      .mini span {
+        display: block;
+        margin-bottom: 6px;
+        color: #8c8c8c;
+        font-size: 12px;
+      }
+
+      .mini strong {
+        display: block;
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .board-sticky {
+        border: 1px solid #d6e4ff;
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .board-sticky .board-chip {
+        background: #e6f4ff;
+        color: #0958d9;
+      }
+
+      .sticky-body {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .sticky-block {
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid #e6f4ff;
+        padding: 12px;
+      }
+
+      .sticky-block h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+      }
+
+      .sticky-block p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.55;
+        color: #595959;
+      }
+
+      @media (max-width: 720px) {
+        body { padding: 18px; }
+        .board-grid,
+        .sticky-body { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div>
+        <h1>销售提醒 Demo</h1>
+        <p class="note">只看样式，不接入正式页面。</p>
+      </div>
+
+      <section class="demo-card">
+        <p class="demo-label">方案 A：轻便签，温和但醒目</p>
+        <div class="board-soft">
+          <header>
+            <h2 class="board-title">销售提醒</h2>
+            <span class="board-chip">内部看</span>
+          </header>
+          <ul class="board-list">
+            <li><span class="dot">1</span><span><b>长期策略：</b>8.20-9.23，主礼包 4选1，副礼包 6选2。</span></li>
+            <li><span class="dot">2</span><span><b>催单抓手：</b>期间赠品可能下架或替换，喜欢的品建议尽快锁定。</span></li>
+            <li><span class="dot">3</span><span><b>特别活动：</b>8.26-9.8 有开学季活动，规则看单独活动模块。</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="demo-card">
+        <p class="demo-label">方案 B：信息卡，最克制</p>
+        <div class="board-compact">
+          <header>
+            <h2 class="board-title">销售提醒</h2>
+            <span class="board-chip">不复制给家长</span>
+          </header>
+          <div class="board-grid">
+            <div class="mini"><span>长期策略</span><strong>8.20-9.23<br />4选1 + 6选2</strong></div>
+            <div class="mini"><span>催单提醒</span><strong>赠品可能下架/替换<br />尽快锁定</strong></div>
+            <div class="mini"><span>开学季</span><strong>8.26-9.8<br />看活动模块</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="demo-card">
+        <p class="demo-label">方案 C：蓝色便笺，和页面主色更统一</p>
+        <div class="board-sticky">
+          <header>
+            <h2 class="board-title">销售提醒</h2>
+            <span class="board-chip">开学季</span>
+          </header>
+          <div class="sticky-body">
+            <div class="sticky-block">
+              <h3>常规赠品</h3>
+              <p>8.20-9.23，主礼包 4选1，副礼包 6选2。期间可能有品下架或替换，提醒家长尽快下单锁定。</p>
+            </div>
+            <div class="sticky-block">
+              <h3>特别活动</h3>
+              <p>8.26-9.8 开启开学季活动，英语系统课额外送《最强大脑》，所有学科都有抽奖机会。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
