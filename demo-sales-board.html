@@ -314,13 +314,6 @@
         padding-bottom: 16px;
       }
 
-      .timeline-summary {
-        margin: 0 0 12px;
-        color: #595959;
-        font-size: 13px;
-        line-height: 1.55;
-      }
-
       .timeline-scale {
         position: relative;
         height: 28px;
@@ -470,11 +463,19 @@
         line-height: 1.45;
       }
 
-      .reminder-text {
+      .note-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .note-list p {
         margin: 0;
         color: #595959;
         font-size: 13px;
         line-height: 1.55;
+      }
+
+      .note-list p:last-child {
         font-weight: 650;
       }
 
@@ -629,7 +630,6 @@
           <div class="neon-metrics">
             <article class="neon-item timeline-card">
               <h3>时间线</h3>
-              <p class="timeline-summary">8.20-9.23 是常规加赠期；8.26-9.8 会叠加开学季活动。</p>
               <div class="gantt" aria-label="9月加赠时间线">
                 <div class="gantt-axis">
                   <div class="timeline-scale" aria-hidden="true">
@@ -650,7 +650,11 @@
               </div>
             </article>
             <article class="neon-item">
-              <p class="reminder-text">*赠品可能下架或替换，遇到家长喜欢的品，建议提醒尽快下单锁定。</p>
+              <h3>说明</h3>
+              <div class="note-list">
+                <p>8.20-9.23 是常规加赠期；8.26-9.8 会叠加开学季活动。</p>
+                <p>*赠品可能下架或替换，遇到家长喜欢的品，建议提醒尽快下单锁定。</p>
+              </div>
             </article>
           </div>
         </section>
