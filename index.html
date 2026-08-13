@@ -669,7 +669,7 @@
             label: item.label,
             value: normalizeProductInfoValue(item.value),
           }))
-          .filter((item) => item.label && item.value);
+          .filter((item) => item.label && !isPendingProductInfoText(item.label) && item.value);
         if (!items.length) return "";
 
         return `
