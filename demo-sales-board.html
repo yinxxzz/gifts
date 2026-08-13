@@ -172,11 +172,27 @@
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        border: 1px solid rgba(56, 189, 248, .42);
-        box-shadow:
-          inset 0 0 0 1px rgba(255,255,255,.42),
-          0 0 18px rgba(56, 189, 248, .16);
-        animation: edgeBreath 8s ease-in-out infinite;
+        padding: 1.5px;
+        background:
+          conic-gradient(from var(--edge-angle),
+            rgba(125, 211, 252, .42) 0deg,
+            rgba(125, 211, 252, .42) 72deg,
+            rgba(167, 139, 250, .78) 98deg,
+            rgba(244, 114, 182, .72) 124deg,
+            rgba(45, 212, 191, .72) 156deg,
+            rgba(125, 211, 252, .42) 204deg,
+            rgba(125, 211, 252, .42) 360deg);
+        -webkit-mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        mask-composite: exclude;
+        opacity: .9;
+        filter: drop-shadow(0 0 8px rgba(56, 189, 248, .24));
+        animation: edgeOrbit 9s linear infinite;
         pointer-events: none;
       }
 
@@ -492,19 +508,15 @@
         }
       }
 
-      @keyframes edgeBreath {
-        0%, 100% {
-          border-color: rgba(56, 189, 248, .34);
-          box-shadow:
-            inset 0 0 0 1px rgba(255,255,255,.42),
-            0 0 14px rgba(56, 189, 248, .12);
-        }
-        50% {
-          border-color: rgba(168, 85, 247, .38);
-          box-shadow:
-            inset 0 0 0 1px rgba(255,255,255,.5),
-            0 0 22px rgba(168, 85, 247, .16);
-        }
+      @property --edge-angle {
+        syntax: '<angle>';
+        inherits: false;
+        initial-value: 0deg;
+      }
+
+      @keyframes edgeOrbit {
+        from { --edge-angle: 0deg; }
+        to { --edge-angle: 360deg; }
       }
 
       @keyframes pulseDot {
