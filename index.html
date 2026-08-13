@@ -10,7 +10,7 @@
     <link rel="icon" href="favicon.png?v=2" type="image/png" sizes="32x32" />
     <link rel="icon" href="favicon.svg?v=2" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="favicon.png?v=2" />
-    <link rel="stylesheet" href="styles/main.css?v=20260813-copy-hint" />
+    <link rel="stylesheet" href="styles/main.css?v=20260813-product-info" />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   </head>
@@ -619,6 +619,55 @@
               </div>`;
       }
 
+      function normalizeProductInfo(gift) {
+        const info = gift.productInfo;
+        if (!info) return [];
+        if (Array.isArray(info)) {
+          return info
+            .map((item) => ({
+              label: plainText(item?.label || "").trim(),
+              value: item?.value,
+            }))
+            .filter((item) => item.label && item.value != null && String(item.value).trim());
+        }
+        if (typeof info === "object") {
+          return Object.entries(info)
+            .map(([label, value]) => ({ label, value }))
+            .filter((item) => item.label && item.value != null && String(item.value).trim());
+        }
+        return [];
+      }
+
+      function renderProductInfoValue(value) {
+        if (Array.isArray(value)) {
+          return value
+            .map((item) => `<span>${escapeHtml(plainText(item))}</span>`)
+            .join("");
+        }
+        return escapeHtml(plainText(value));
+      }
+
+      function renderProductInfo(gift) {
+        const items = normalizeProductInfo(gift);
+        if (!items.length) return "";
+
+        return `
+              <details class="product-info">
+                <summary>产品资料</summary>
+                <dl>
+                  ${items
+                    .map(
+                      (item) => `
+                  <div class="product-info-row">
+                    <dt>${escapeHtml(item.label)}</dt>
+                    <dd>${renderProductInfoValue(item.value)}</dd>
+                  </div>`
+                    )
+                    .join("")}
+                </dl>
+              </details>`;
+      }
+
       async function hydrateIncludeThumbs() {
         const items = document.querySelectorAll(".gift-include-item[data-include-img]");
         await Promise.all(
@@ -701,6 +750,7 @@
                   .join("")}
                 </ul>
               </div>
+              ${renderProductInfo(gift)}
               ${renderGiftIncludes(gift, periodId, bundleId)}
             </div>
           </article>`;
