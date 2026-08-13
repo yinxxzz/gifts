@@ -977,6 +977,18 @@ html.is-embed .page {
   z-index: 1;
 }
 
+.gift-copy-btn::after {
+  top: 50%;
+  right: 32px;
+  transform: translate(4px, -50%);
+}
+
+.gift-copy-btn:hover::after,
+.gift-copy-btn:focus-visible::after,
+.gift-copy-btn.is-copied::after {
+  transform: translate(0, -50%);
+}
+
 .product-info {
   margin-top: 10px;
   border-top: 1px dashed #eeeeee;
