@@ -1311,6 +1311,14 @@
         }
         const fromFolder = await crawlPeriodAssets(periodId, `${name}/`);
         if (fromFolder.length) return fromFolder;
+        if (image && image.startsWith("assets/")) {
+          const imageDir = image.split("/").slice(0, -1).join("/");
+          const match = imageDir.match(/^assets\/([^/]+)\/(.+)$/);
+          if (match) {
+            const fromImageFolder = await crawlPeriodAssets(match[1], `${match[2]}/`);
+            if (fromImageFolder.length) return fromImageFolder;
+          }
+        }
 
         const files = [];
         const seen = new Set();
