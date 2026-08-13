@@ -3,254 +3,419 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>销售提醒 Demo</title>
+    <title>销售提醒侧边栏 Demo</title>
     <style>
       :root {
         color-scheme: light;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #f5f5f5;
-        color: #262626;
+        background: #f3f3f3;
+        color: #242424;
       }
+
+      * { box-sizing: border-box; }
 
       body {
         margin: 0;
-        padding: 32px;
+        padding: 28px 30px 40px;
       }
 
-      main {
-        max-width: 1080px;
+      .page-shell {
+        width: min(1560px, 100%);
         margin: 0 auto;
         display: grid;
-        gap: 20px;
+        grid-template-columns: 260px minmax(0, 1fr);
+        gap: 22px;
+        align-items: start;
       }
 
-      h1 {
-        margin: 0 0 4px;
-        font-size: 24px;
+      .side-demo {
+        position: sticky;
+        top: 24px;
+        display: grid;
+        gap: 16px;
       }
 
-      .note {
-        margin: 0 0 10px;
+      .content-demo {
+        min-width: 0;
+      }
+
+      .demo-heading {
+        margin: 0 0 14px;
         color: #8c8c8c;
-        font-size: 14px;
+        font-size: 13px;
+        font-weight: 600;
       }
 
-      .demo-card {
+      .mock-header,
+      .mock-summary,
+      .mock-tabs,
+      .mock-card {
         background: #fff;
         border-radius: 14px;
-        padding: 18px;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
       }
 
-      .demo-label {
+      .mock-header {
+        padding: 22px 24px;
+        margin-bottom: 18px;
+      }
+
+      .mock-header h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+      }
+
+      .mock-header p {
+        margin: 0;
+        color: #666;
+      }
+
+      .mock-summary {
+        border-left: 4px solid #1677ff;
+        padding: 22px 24px;
+        margin-bottom: 18px;
+      }
+
+      .mock-summary h2 {
         margin: 0 0 12px;
-        color: #8c8c8c;
-        font-size: 13px;
-      }
-
-      .board-soft {
-        border: 1px solid #ffe7ba;
-        border-left: 4px solid #faad14;
-        background: #fffaf0;
-        border-radius: 12px;
-        padding: 16px 18px;
-      }
-
-      .board-soft header,
-      .board-compact header,
-      .board-sticky header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 10px;
-      }
-
-      .board-title {
-        margin: 0;
+        color: #1677ff;
         font-size: 18px;
-        line-height: 1.35;
       }
 
-      .board-chip {
-        flex: 0 0 auto;
-        border-radius: 999px;
-        padding: 3px 9px;
-        font-size: 12px;
-        background: rgba(250, 173, 20, 0.14);
-        color: #ad6800;
-      }
-
-      .board-list {
+      .mock-summary p {
         margin: 0;
-        padding: 0;
-        list-style: none;
+        line-height: 1.75;
+        font-size: 17px;
+      }
+
+      .mock-tabs {
         display: grid;
-        gap: 8px;
+        grid-template-columns: 1fr 1fr;
+        padding: 8px;
+        margin-bottom: 18px;
       }
 
-      .board-list li {
-        display: grid;
-        grid-template-columns: 22px 1fr;
-        gap: 8px;
-        line-height: 1.55;
-        font-size: 15px;
+      .mock-tab {
+        border-radius: 10px;
+        padding: 13px;
+        text-align: center;
+        font-weight: 700;
+        color: #595959;
       }
 
-      .board-list b {
-        color: #262626;
+      .mock-tab.active {
+        background: #1677ff;
+        color: #fff;
       }
 
-      .dot {
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        background: #fff1b8;
-        color: #ad6800;
-        display: inline-grid;
-        place-items: center;
+      .mock-card {
+        min-height: 170px;
+        padding: 22px 24px;
+      }
+
+      .mock-card h2 {
+        margin: 0 0 14px;
+        font-size: 20px;
+      }
+
+      .mock-line {
+        height: 16px;
+        border-radius: 999px;
+        background: #eee;
+        margin: 14px 0;
+      }
+
+      .mock-line:nth-child(2) { width: 78%; }
+      .mock-line:nth-child(3) { width: 62%; }
+
+      .side-card {
+        border-radius: 18px;
+        overflow: hidden;
+        position: relative;
+        min-height: 230px;
+      }
+
+      .side-label {
+        margin: 0 0 8px;
+        color: #8c8c8c;
         font-size: 12px;
         font-weight: 700;
       }
 
-      .board-compact {
-        border: 1px solid #e8e8e8;
-        background: #fff;
-        border-radius: 12px;
-        padding: 14px 16px;
+      .pin-board {
+        padding: 16px;
+        background:
+          radial-gradient(circle at 24px 24px, rgba(255,255,255,.65) 0 3px, transparent 4px),
+          linear-gradient(160deg, #fff8d9 0%, #ffe9a8 100%);
+        border: 1px solid #ffd666;
+        box-shadow: 0 12px 28px rgba(173, 104, 0, 0.16);
       }
 
-      .board-compact .board-chip {
-        background: #f0f5ff;
-        color: #1677ff;
+      .pin-board::before {
+        content: "";
+        position: absolute;
+        top: 13px;
+        left: 50%;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        transform: translateX(-50%);
+        background: #ff7875;
+        box-shadow: inset 0 -2px 0 rgba(0,0,0,.12), 0 3px 8px rgba(255, 77, 79, .25);
       }
 
-      .board-grid {
+      .pin-title {
+        margin: 18px 0 12px;
+        font-size: 20px;
+        line-height: 1.2;
+      }
+
+      .pin-row {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
+        grid-template-columns: 24px 1fr;
+        gap: 8px;
+        margin: 10px 0;
+        line-height: 1.45;
+        font-size: 14px;
       }
 
-      .mini {
-        border-radius: 10px;
+      .pin-num {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .75);
+        display: grid;
+        place-items: center;
+        color: #ad6800;
+        font-weight: 800;
+      }
+
+      .ticket-board {
+        background: #fff;
+        border: 1px solid #d6e4ff;
+        box-shadow: 0 12px 26px rgba(22, 119, 255, 0.12);
+      }
+
+      .ticket-head {
+        padding: 14px 15px;
+        background: linear-gradient(135deg, #1677ff, #69b1ff);
+        color: #fff;
+      }
+
+      .ticket-head span {
+        display: inline-block;
+        margin-bottom: 5px;
+        font-size: 11px;
+        opacity: .85;
+      }
+
+      .ticket-head h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      .ticket-body {
+        padding: 14px 15px 16px;
+      }
+
+      .ticket-item {
+        padding: 10px 0;
+        border-bottom: 1px dashed #d9d9d9;
+      }
+
+      .ticket-item:last-child {
+        border-bottom: 0;
+      }
+
+      .ticket-item b {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 14px;
+      }
+
+      .ticket-item span {
+        color: #666;
+        line-height: 1.45;
+        font-size: 13px;
+      }
+
+      .glow-board {
+        padding: 15px;
+        background:
+          linear-gradient(#fff, #fff) padding-box,
+          linear-gradient(135deg, #ff7a45, #ffd666, #69b1ff) border-box;
+        border: 2px solid transparent;
+        box-shadow: 0 14px 34px rgba(22, 119, 255, .12);
+      }
+
+      .glow-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .glow-top h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      .glow-badge {
+        border-radius: 999px;
+        padding: 3px 8px;
+        background: #fff7e6;
+        color: #d46b08;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .glow-block {
+        border-radius: 13px;
+        padding: 11px 12px;
+        margin-top: 9px;
         background: #fafafa;
-        padding: 12px;
         border: 1px solid #f0f0f0;
       }
 
-      .mini span {
+      .glow-block strong {
         display: block;
-        margin-bottom: 6px;
-        color: #8c8c8c;
-        font-size: 12px;
-      }
-
-      .mini strong {
-        display: block;
-        font-size: 15px;
-        line-height: 1.45;
-      }
-
-      .board-sticky {
-        border: 1px solid #d6e4ff;
-        background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
-        border-radius: 12px;
-        padding: 16px;
-      }
-
-      .board-sticky .board-chip {
-        background: #e6f4ff;
-        color: #0958d9;
-      }
-
-      .sticky-body {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-
-      .sticky-block {
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.75);
-        border: 1px solid #e6f4ff;
-        padding: 12px;
-      }
-
-      .sticky-block h3 {
-        margin: 0 0 6px;
-        font-size: 15px;
-      }
-
-      .sticky-block p {
-        margin: 0;
+        margin-bottom: 4px;
         font-size: 14px;
-        line-height: 1.55;
-        color: #595959;
       }
 
-      @media (max-width: 720px) {
-        body { padding: 18px; }
-        .board-grid,
-        .sticky-body { grid-template-columns: 1fr; }
+      .glow-block p {
+        margin: 0;
+        color: #666;
+        font-size: 13px;
+        line-height: 1.48;
+      }
+
+      .mini-float {
+        padding: 14px;
+        background: rgba(255, 255, 255, .82);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, .9);
+        box-shadow: 0 14px 30px rgba(0,0,0,.1);
+      }
+
+      .mini-float h2 {
+        margin: 0 0 10px;
+        font-size: 19px;
+      }
+
+      .float-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      .float-pill {
+        border-radius: 999px;
+        padding: 9px 11px;
+        background: #f5f8ff;
+        color: #1f1f1f;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .float-pill b {
+        color: #1677ff;
+      }
+
+      @media (max-width: 980px) {
+        .page-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .side-demo {
+          position: static;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        body { padding: 16px; }
+        .side-demo { grid-template-columns: 1fr; }
       }
     </style>
   </head>
   <body>
-    <main>
-      <div>
-        <h1>销售提醒 Demo</h1>
-        <p class="note">只看样式，不接入正式页面。</p>
-      </div>
-
-      <section class="demo-card">
-        <p class="demo-label">方案 A：轻便签，温和但醒目</p>
-        <div class="board-soft">
-          <header>
-            <h2 class="board-title">销售提醒</h2>
-            <span class="board-chip">内部看</span>
-          </header>
-          <ul class="board-list">
-            <li><span class="dot">1</span><span><b>长期策略：</b>8.20-9.23，主礼包 4选1，副礼包 6选2。</span></li>
-            <li><span class="dot">2</span><span><b>催单抓手：</b>期间赠品可能下架或替换，喜欢的品建议尽快锁定。</span></li>
-            <li><span class="dot">3</span><span><b>特别活动：</b>8.26-9.8 有开学季活动，规则看单独活动模块。</span></li>
-          </ul>
+    <div class="page-shell">
+      <aside class="side-demo">
+        <div>
+          <p class="side-label">方案 A：便利贴，有一点活泼</p>
+          <section class="side-card pin-board">
+            <h2 class="pin-title">销售提醒</h2>
+            <div class="pin-row"><span class="pin-num">1</span><span><b>8.20-9.23</b><br />4选1 + 6选2</span></div>
+            <div class="pin-row"><span class="pin-num">2</span><span>有品可能下架/替换<br />提醒尽快锁定</span></div>
+            <div class="pin-row"><span class="pin-num">3</span><span>8.26-9.8<br />看开学季模块</span></div>
+          </section>
         </div>
-      </section>
 
-      <section class="demo-card">
-        <p class="demo-label">方案 B：信息卡，最克制</p>
-        <div class="board-compact">
-          <header>
-            <h2 class="board-title">销售提醒</h2>
-            <span class="board-chip">不复制给家长</span>
-          </header>
-          <div class="board-grid">
-            <div class="mini"><span>长期策略</span><strong>8.20-9.23<br />4选1 + 6选2</strong></div>
-            <div class="mini"><span>催单提醒</span><strong>赠品可能下架/替换<br />尽快锁定</strong></div>
-            <div class="mini"><span>开学季</span><strong>8.26-9.8<br />看活动模块</strong></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="demo-card">
-        <p class="demo-label">方案 C：蓝色便笺，和页面主色更统一</p>
-        <div class="board-sticky">
-          <header>
-            <h2 class="board-title">销售提醒</h2>
-            <span class="board-chip">开学季</span>
-          </header>
-          <div class="sticky-body">
-            <div class="sticky-block">
-              <h3>常规赠品</h3>
-              <p>8.20-9.23，主礼包 4选1，副礼包 6选2。期间可能有品下架或替换，提醒家长尽快下单锁定。</p>
+        <div>
+          <p class="side-label">方案 B：活动票根，比较 fancy</p>
+          <section class="side-card ticket-board">
+            <div class="ticket-head">
+              <span>SALES NOTE</span>
+              <h2>开学季提醒</h2>
             </div>
-            <div class="sticky-block">
-              <h3>特别活动</h3>
-              <p>8.26-9.8 开启开学季活动，英语系统课额外送《最强大脑》，所有学科都有抽奖机会。</p>
+            <div class="ticket-body">
+              <div class="ticket-item"><b>长期赠品</b><span>8.20-9.23<br />主礼 4选1，副礼 6选2</span></div>
+              <div class="ticket-item"><b>催单抓手</b><span>赠品可能下架或替换，喜欢就先锁定。</span></div>
+              <div class="ticket-item"><b>特别活动</b><span>8.26-9.8 看单独模块。</span></div>
             </div>
-          </div>
+          </section>
         </div>
-      </section>
-    </main>
+
+        <div>
+          <p class="side-label">方案 C：彩边卡，醒目但不黑</p>
+          <section class="side-card glow-board">
+            <div class="glow-top">
+              <h2>销售提醒</h2>
+              <span class="glow-badge">内部</span>
+            </div>
+            <div class="glow-block"><strong>常规赠品</strong><p>8.20-9.23，主礼包 4选1，副礼包 6选2。</p></div>
+            <div class="glow-block"><strong>锁单提醒</strong><p>期间赠品可能下架/替换，建议家长尽快下单锁定。</p></div>
+            <div class="glow-block"><strong>开学季活动</strong><p>8.26-9.8，规则看单独活动模块。</p></div>
+          </section>
+        </div>
+
+        <div>
+          <p class="side-label">方案 D：玻璃浮窗，最轻</p>
+          <section class="side-card mini-float">
+            <h2>销售提醒</h2>
+            <div class="float-grid">
+              <div class="float-pill"><b>长期</b> 8.20-9.23｜4选1+6选2</div>
+              <div class="float-pill"><b>催单</b> 赠品可能下架/替换</div>
+              <div class="float-pill"><b>活动</b> 8.26-9.8 开学季</div>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <main class="content-demo">
+        <section class="mock-header">
+          <h1>9月系统课加赠</h1>
+          <p>0820-0923</p>
+        </section>
+
+        <section class="mock-summary">
+          <h2>策略介绍 · 说给家长</h2>
+          <p>这次咱们的开学赠品可以自由挑选。主礼品挑 1 个，再从副礼品里面选两样，按照孩子平时的需求自己搭配就行，学习、画画、启蒙玩具全都有。</p>
+        </section>
+
+        <section class="mock-tabs">
+          <div class="mock-tab active">开学主礼包</div>
+          <div class="mock-tab">开学副礼包</div>
+        </section>
+
+        <section class="mock-card">
+          <h2>开学主礼包 <span style="font-size:13px;background:#1677ff;color:#fff;border-radius:6px;padding:2px 8px;">4选1</span></h2>
+          <div class="mock-line"></div>
+          <div class="mock-line"></div>
+          <div class="mock-line"></div>
+        </section>
+      </main>
+    </div>
   </body>
 </html>
