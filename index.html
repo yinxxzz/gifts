@@ -399,6 +399,9 @@
           .map((point) => plainText(point).trim())
           .filter(Boolean);
         const lines = points.length ? points : [gift.name];
+        if (lines[0] && !lines[0].startsWith(gift.name)) {
+          lines[0] = `${gift.name}${lines[0].startsWith("开学后") ? "在" : ""}${lines[0]}`;
+        }
 
         const includes = resolveGiftIncludes(gift, period.id, bundle.id)
           .map((item) => plainText(item).trim())
