@@ -1455,6 +1455,44 @@ html.is-embed .page {
   margin: 0.6em 0;
 }
 
+.sales-guide-table-wrap {
+  overflow-x: auto;
+  margin: 0.8em 0 1em;
+  border: 1px solid #e6f0ff;
+  border-radius: 10px;
+}
+
+.sales-guide-prose table {
+  width: 100%;
+  min-width: 720px;
+  margin: 0;
+  border-collapse: collapse;
+  overflow: hidden;
+  font-size: 0.95em;
+}
+
+.sales-guide-prose thead {
+  background: #f0f7ff;
+}
+
+.sales-guide-prose th,
+.sales-guide-prose td {
+  padding: 10px 12px;
+  border: 1px solid #e6f0ff;
+  text-align: left;
+  vertical-align: top;
+}
+
+.sales-guide-prose th {
+  color: #1f1f1f;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sales-guide-prose td {
+  color: #434343;
+}
+
 .sales-guide-prose hr {
   border: none;
   border-top: 1px solid #f0f0f0;

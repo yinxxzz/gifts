@@ -1591,6 +1591,12 @@
             a.target = "_blank";
             a.rel = "noopener noreferrer";
           });
+          body.querySelectorAll(".sales-guide-prose table").forEach((table) => {
+            const wrap = document.createElement("div");
+            wrap.className = "sales-guide-table-wrap";
+            table.parentNode.insertBefore(wrap, table);
+            wrap.appendChild(table);
+          });
           body.querySelectorAll(".sales-guide-prose img").forEach((img) => {
             const src = img.getAttribute("src");
             if (!src || src.startsWith("http") || src.includes("?v=")) return;
