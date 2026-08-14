@@ -127,6 +127,13 @@
         return baseBundle?.salesScript || "";
       }
 
+      function findBaseGift(periodId, bundleId, giftName) {
+        return basePeriods
+          .find((p) => p.id === periodId)
+          ?.bundles?.find((b) => b.id === bundleId)
+          ?.gifts?.find((g) => g.name === giftName);
+      }
+
       function loadEdits() {
         return serverEdits;
       }
@@ -1291,6 +1298,7 @@
                 name: gift.name,
                 periodId: period.id,
                 periodTitle: period.title,
+                bundleId: bundle.id,
                 image: gift.image || "",
                 gallery: Array.isArray(gift.gallery) ? gift.gallery : [],
               };
@@ -1383,8 +1391,13 @@
 
       async function getGiftPreviewImages(entry) {
         const explicit = [];
-        if (entry.image) explicit.push(entry.image);
-        if (Array.isArray(entry.gallery)) explicit.push(...entry.gallery);
+        const baseGift = findBaseGift(entry.periodId, entry.bundleId, entry.name);
+        const gallery = Array.isArray(entry.gallery) && entry.gallery.length
+          ? entry.gallery
+          : baseGift?.gallery;
+
+        if (entry.image || baseGift?.image) explicit.push(entry.image || baseGift.image);
+        if (Array.isArray(gallery)) explicit.push(...gallery);
 
         const unique = [...new Set(explicit.filter(Boolean))];
         if (unique.length) return unique;
@@ -1753,6 +1766,7 @@
             await openPreviewModal({
               name: gift.name,
               periodId: btn.dataset.periodId,
+              bundleId: btn.dataset.bundleId,
               image: gift.image || "",
               gallery: Array.isArray(gift.gallery) ? gift.gallery : [],
             });
