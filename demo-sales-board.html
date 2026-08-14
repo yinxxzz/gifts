@@ -564,13 +564,6 @@
         line-height: 1.2;
       }
 
-      .benefit-subtitle {
-        margin: -6px 0 0;
-        color: #737373;
-        font-size: 12px;
-        line-height: 1.45;
-      }
-
       .benefit-controls {
         display: grid;
         gap: 9px;
@@ -603,6 +596,57 @@
       .benefit-field select:focus {
         border-color: #60a5fa;
         box-shadow: 0 0 0 3px rgba(96,165,250,.18);
+      }
+
+      .subject-pills {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .subject-pill {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        border: 1px solid rgba(191, 219, 254, .95);
+        border-radius: 13px;
+        padding: 9px 10px;
+        background: rgba(255,255,255,.78);
+        color: #434343;
+        font-size: 12px;
+        font-weight: 750;
+        cursor: pointer;
+        box-shadow: 0 6px 16px rgba(37,99,235,.05);
+      }
+
+      .subject-pill input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .subject-pill span::before {
+        content: "";
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        margin-right: 7px;
+        border-radius: 50%;
+        border: 2px solid #93c5fd;
+        vertical-align: -1px;
+      }
+
+      .subject-pill:has(input:checked) {
+        border-color: rgba(96, 165, 250, .98);
+        background: linear-gradient(180deg, rgba(239,246,255,.94), rgba(255,255,255,.82));
+        color: #1677ff;
+      }
+
+      .subject-pill:has(input:checked) span::before {
+        border-color: #1677ff;
+        background: #a3e635;
+        box-shadow: 0 0 10px rgba(163,230,53,.8);
       }
 
       .benefit-result {
@@ -790,23 +834,22 @@
         <section class="benefit-demo" aria-label="到手权益计算器">
           <div class="benefit-inner">
             <header>
-              <h2 class="benefit-title">到手权益计算</h2>
-              <p class="benefit-subtitle">选一下下单时间和科目，销售马上知道该怎么跟家长说。</p>
+              <h2 class="benefit-title">赠品算一算</h2>
             </header>
 
             <div class="benefit-controls">
               <div class="benefit-field">
                 <label for="order-date">下单时间</label>
-                <input id="order-date" type="date" min="2026-08-01" max="2026-09-30" value="2026-08-26" />
+                <input id="order-date" type="date" min="2026-08-20" max="2026-09-23" value="2026-08-26" />
               </div>
-              <div class="benefit-field">
-                <label for="order-subject">下单科目</label>
-                <select id="order-subject">
-                  <option value="english">英语系统课</option>
-                  <option value="math">数学系统课</option>
-                  <option value="chinese">语文系统课</option>
-                  <option value="other">其他学科系统课</option>
-                </select>
+              <div class="benefit-field" id="order-subjects">
+                <label>下单科目</label>
+                <div class="subject-pills">
+                  <label class="subject-pill"><input type="checkbox" value="english" checked /><span>英语系统课</span></label>
+                  <label class="subject-pill"><input type="checkbox" value="math" /><span>数学系统课</span></label>
+                  <label class="subject-pill"><input type="checkbox" value="chinese" /><span>语文系统课</span></label>
+                  <label class="subject-pill"><input type="checkbox" value="other" /><span>其他学科</span></label>
+                </div>
               </div>
             </div>
 
@@ -842,7 +885,7 @@
     </div>
     <script>
       const orderDateInput = document.getElementById("order-date");
-      const orderSubjectInput = document.getElementById("order-subject");
+      const orderSubjectInputs = [...document.querySelectorAll("#order-subjects input[type='checkbox']")];
       const benefitStatus = document.getElementById("benefit-status");
       const benefitResult = document.getElementById("benefit-result");
 
@@ -850,41 +893,51 @@
 
       function renderBenefitResult() {
         const date = orderDateInput.value;
-        const subject = orderSubjectInput.value;
+        const subjects = orderSubjectInputs.filter((input) => input.checked).map((input) => input.value);
+        const orderCount = subjects.length;
         const hasRegular = inRange(date, "2026-08-20", "2026-09-23");
         const hasSchool = inRange(date, "2026-08-26", "2026-09-08");
-        const isEnglish = subject === "english";
+        const hasEnglish = subjects.includes("english");
 
-        benefitStatus.textContent = hasSchool ? "开学季叠加中" : hasRegular ? "仅常规加赠" : "不在活动期";
+        benefitStatus.textContent = orderCount === 0
+          ? "请选择科目"
+          : hasSchool
+            ? "开学季叠加中"
+            : hasRegular
+              ? "仅常规加赠"
+              : "不在活动期";
 
         const rows = [
           {
-            active: hasRegular,
+            active: hasRegular && orderCount > 0,
             title: "9月常规加赠",
-            text: "开学主礼包4选1 + 开学副礼包6选2。",
+            text: `已选${orderCount}科，9月常规加赠照常享有：开学主礼包4选1 + 开学副礼包6选2。`,
+            mutedText: orderCount ? "下单时间不在9月常规加赠期内。" : "请先选择至少一个下单科目。",
           },
           {
-            active: hasSchool,
+            active: hasSchool && orderCount > 0,
             title: "开学季专属抽奖",
-            text: "下1单额外获得1次抽奖，3抽1，100%中实物：斑马书包 / 美术大礼包 / 多功能升降阅读架。",
+            text: `已选${orderCount}科，可对应${orderCount}次抽奖机会；每次3抽1，100%中实物：斑马书包 / 美术大礼包 / 多功能升降阅读架。`,
+            mutedText: orderCount ? "当前日期不在开学季特别活动期内。" : "请先选择至少一个下单科目。",
           },
           {
-            active: hasSchool && isEnglish,
+            active: hasSchool && hasEnglish,
             title: "英语系统课额外赠书",
-            text: "额外赠送《成为最强大脑》1本。",
+            text: "包含英语系统课，额外赠送《成为最强大脑》1本。",
+            mutedText: hasSchool ? "未选择英语系统课，不触发额外赠书。" : "当前日期不在开学季特别活动期内。",
           },
         ];
 
         benefitResult.innerHTML = rows.map((row) => `
           <div class="benefit-row ${row.active ? "is-hit" : "is-muted"}">
             <b>${row.active ? "可获得：" : "未触发："}${row.title}</b>
-            <span>${row.active ? row.text : "当前选择不满足这个权益条件。"}</span>
+            <span>${row.active ? row.text : row.mutedText}</span>
           </div>
         `).join("");
       }
 
       orderDateInput.addEventListener("input", renderBenefitResult);
-      orderSubjectInput.addEventListener("change", renderBenefitResult);
+      orderSubjectInputs.forEach((input) => input.addEventListener("change", renderBenefitResult));
       renderBenefitResult();
     </script>
   </body>
