@@ -1484,7 +1484,7 @@
             <div class="sales-guide-panel">
               <div class="sales-guide-header">
                 <button type="button" class="gift-search-back-btn" id="sales-guide-close">← 返回</button>
-                <h2 class="sales-guide-title">618限定加赠说明</h2>
+                <h2 class="sales-guide-title" id="sales-guide-title">活动说明</h2>
               </div>
               <div class="sales-guide-body" id="sales-guide-body"></div>
             </div>
@@ -1548,26 +1548,37 @@
       }
 
       const SALES_GUIDE_DOCS = {
-        "2026-09": "docs/开学季活动销售说明.md",
-        "2026-09-school": "docs/开学季活动销售说明.md",
-        "2026-618": "docs/618活动销售说明.md",
+        "2026-09": {
+          title: "9月常规加赠说明",
+          path: "docs/9月常规加赠销售说明.md",
+        },
+        "2026-09-school": {
+          title: "开学季特别活动说明",
+          path: "docs/开学季活动销售说明.md",
+        },
+        "2026-618": {
+          title: "618限定加赠说明",
+          path: "docs/618活动销售说明.md",
+        },
       };
       /** 活动说明内容更新后改此版本，避免浏览器缓存旧 md */
-      const SALES_GUIDE_REV = "20260814-school-1";
+      const SALES_GUIDE_REV = "20260814-guide-split-1";
 
       async function openSalesGuideModal(periodId) {
-        const path = SALES_GUIDE_DOCS[periodId];
-        if (!path) return;
+        const guide = SALES_GUIDE_DOCS[periodId];
+        if (!guide) return;
 
         ensureSearchModals();
         const modal = document.getElementById("sales-guide-modal");
         const body = document.getElementById("sales-guide-body");
+        const title = document.getElementById("sales-guide-title");
         modal.hidden = false;
         document.body.style.overflow = "hidden";
+        if (title) title.textContent = guide.title;
         body.innerHTML = '<p class="gift-search-hint">加载中…</p>';
 
         try {
-          const res = await fetch(`${path}?v=${SALES_GUIDE_REV}`, { cache: "no-store" });
+          const res = await fetch(`${guide.path}?v=${SALES_GUIDE_REV}`, { cache: "no-store" });
           if (!res.ok) throw new Error("fetch failed");
           const md = await res.text();
           if (typeof marked !== "undefined") {
