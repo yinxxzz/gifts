@@ -599,23 +599,24 @@
       }
 
       .subject-pills {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
       }
 
       .subject-pill {
         position: relative;
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 7px;
+        justify-content: center;
         border: 1px solid rgba(191, 219, 254, .95);
-        border-radius: 13px;
-        padding: 9px 10px;
+        border-radius: 999px;
+        padding: 7px 10px;
         background: rgba(255,255,255,.78);
         color: #434343;
-        font-size: 12px;
-        font-weight: 750;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1;
         cursor: pointer;
         box-shadow: 0 6px 16px rgba(37,99,235,.05);
       }
@@ -846,10 +847,13 @@
               <div class="benefit-field" id="order-subjects">
                 <label>下单科目</label>
                 <div class="subject-pills">
-                  <label class="subject-pill"><input type="checkbox" value="english" checked /><span>英语系统课</span></label>
-                  <label class="subject-pill"><input type="checkbox" value="math" /><span>数学系统课</span></label>
-                  <label class="subject-pill"><input type="checkbox" value="chinese" /><span>语文系统课</span></label>
-                  <label class="subject-pill"><input type="checkbox" value="other" /><span>其他学科</span></label>
+                  <label class="subject-pill"><input type="checkbox" value="english" checked /><span>英语</span></label>
+                  <label class="subject-pill"><input type="checkbox" value="thinking" /><span>思维</span></label>
+                  <label class="subject-pill"><input type="checkbox" value="reading" /><span>阅读</span></label>
+                  <label class="subject-pill"><input type="checkbox" value="writing" /><span>写字</span></label>
+                  <label class="subject-pill"><input type="checkbox" value="music" /><span>音乐</span></label>
+                  <label class="subject-pill"><input type="checkbox" value="art" /><span>美术</span></label>
+                  <label class="subject-pill"><input type="checkbox" value="science" /><span>科学</span></label>
                 </div>
               </div>
             </div>
