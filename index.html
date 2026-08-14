@@ -1292,6 +1292,7 @@
                 periodId: period.id,
                 periodTitle: period.title,
                 image: gift.image || "",
+                gallery: Array.isArray(gift.gallery) ? gift.gallery : [],
               };
               const existing = map.get(gift.name);
               if (!existing || shouldReplaceCatalogEntry(existing, entry)) {
@@ -1381,20 +1382,14 @@
       }
 
       async function getGiftPreviewImages(entry) {
-        const assets = await crawlGiftAssets(entry);
-        const imageUrls = assets
-          .filter((item) => /\.(jpe?g|png|webp|gif)$/i.test(item.url))
-          .map((item) => item.url);
+        const explicit = [];
+        if (entry.image) explicit.push(entry.image);
+        if (Array.isArray(entry.gallery)) explicit.push(...entry.gallery);
 
-        const unique = [...new Set(imageUrls)];
-        if (!unique.length && entry.image) return [entry.image];
+        const unique = [...new Set(explicit.filter(Boolean))];
+        if (unique.length) return unique;
 
-        if (entry.image) {
-          const rest = unique.filter((url) => url !== entry.image);
-          return [entry.image, ...rest];
-        }
-
-        return unique;
+        return [];
       }
 
       function renderSearchResultCard(entry) {
@@ -1759,6 +1754,7 @@
               name: gift.name,
               periodId: btn.dataset.periodId,
               image: gift.image || "",
+              gallery: Array.isArray(gift.gallery) ? gift.gallery : [],
             });
           });
         });
