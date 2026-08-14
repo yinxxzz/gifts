@@ -10,7 +10,7 @@
     <link rel="icon" href="favicon.png?v=2" type="image/png" sizes="32x32" />
     <link rel="icon" href="favicon.svg?v=2" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="favicon.png?v=2" />
-    <link rel="stylesheet" href="styles/main.css?v=20260813-copy-tip-left" />
+    <link rel="stylesheet" href="styles/main.css?v=20260814-sales-tools" />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   </head>
@@ -935,6 +935,82 @@
           </div>`;
       }
 
+      function shouldRenderSeptemberTools(period) {
+        return period?.id === "2026-09";
+      }
+
+      function renderSeptemberSalesBoard() {
+        return `
+          <section class="sales-board" aria-label="9月加赠策略">
+            <div class="sales-board-aurora"></div>
+            <div class="sales-board-grid"></div>
+            <header class="sales-board-head">
+              <h2 class="sales-board-title">9月加赠策略</h2>
+            </header>
+            <div class="sales-board-content">
+              <article class="sales-board-panel timeline-card">
+                <h3>时间线</h3>
+                <div class="sales-timeline" aria-label="9月加赠时间线">
+                  <div class="timeline-scale" aria-hidden="true">
+                    <span>8.20</span>
+                    <span>8.26</span>
+                    <span>9.8</span>
+                    <span>9.23</span>
+                  </div>
+                  <div class="gantt-track">
+                    <span class="gantt-bar full"></span>
+                  </div>
+                </div>
+              </article>
+              <article class="sales-board-panel">
+                <h3>说明</h3>
+                <div class="sales-note-list">
+                  <p>8.20-9.23 是常规加赠期；8.26-9.8 会叠加开学季活动。</p>
+                  <p>*赠品可能下架或替换，遇到家长喜欢的品，建议提醒尽快下单锁定。</p>
+                </div>
+              </article>
+            </div>
+          </section>`;
+      }
+
+      function renderGiftCalculator() {
+        return `
+          <section class="benefit-calculator" aria-label="赠品算一算">
+            <div class="benefit-inner">
+              <header>
+                <h2 class="benefit-title">赠品算一算</h2>
+              </header>
+              <div class="benefit-controls">
+                <div class="benefit-field">
+                  <label for="order-date">下单时间</label>
+                  <input id="order-date" type="date" min="2026-08-20" max="2026-09-23" />
+                </div>
+                <div class="benefit-field" id="order-subjects">
+                  <label>下单科目</label>
+                  <div class="subject-pills">
+                    <label class="subject-pill"><input type="checkbox" value="english" checked /><span>英语</span></label>
+                    <label class="subject-pill"><input type="checkbox" value="thinking" /><span>思维</span></label>
+                    <label class="subject-pill"><input type="checkbox" value="reading" /><span>阅读</span></label>
+                    <label class="subject-pill"><input type="checkbox" value="writing" /><span>写字</span></label>
+                    <label class="subject-pill"><input type="checkbox" value="music" /><span>音乐</span></label>
+                    <label class="subject-pill"><input type="checkbox" value="art" /><span>美术</span></label>
+                    <label class="subject-pill"><input type="checkbox" value="science" /><span>科学</span></label>
+                  </div>
+                </div>
+              </div>
+              <div class="benefit-badge" id="benefit-status">开学季叠加中</div>
+              <div class="benefit-result" id="benefit-result"></div>
+            </div>
+          </section>`;
+      }
+
+      function renderSeptemberTools(period) {
+        if (!shouldRenderSeptemberTools(period)) return "";
+        return `
+          ${renderSeptemberSalesBoard()}
+          ${renderGiftCalculator()}`;
+      }
+
       function renderPeriod(period) {
         const bundlesHtml = renderBundlesArea(period);
 
@@ -991,6 +1067,7 @@
             >${escapeHtml(period.summary)}</div>
           </section>
 
+          ${renderSeptemberTools(period)}
           ${bundlesHtml}
           ${renderOpsHiddenFooter()}`;
       }
@@ -2080,6 +2157,90 @@
         URL.revokeObjectURL(a.href);
       }
 
+      const benefitInRange = (value, start, end) => value >= start && value <= end;
+
+      function toLocalDateValue(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function setDefaultOrderDate(orderDateInput) {
+        const today = toLocalDateValue(new Date());
+        const minDate = orderDateInput.min;
+        const maxDate = orderDateInput.max;
+        orderDateInput.value = today < minDate ? minDate : today > maxDate ? maxDate : today;
+      }
+
+      function initGiftCalculator() {
+        const orderDateInput = document.getElementById("order-date");
+        const benefitStatus = document.getElementById("benefit-status");
+        const benefitResult = document.getElementById("benefit-result");
+        const orderSubjectInputs = [
+          ...document.querySelectorAll("#order-subjects input[type='checkbox']"),
+        ];
+        if (!orderDateInput || !benefitStatus || !benefitResult || !orderSubjectInputs.length) {
+          return;
+        }
+
+        function renderBenefitResult() {
+          const date = orderDateInput.value;
+          const subjects = orderSubjectInputs
+            .filter((input) => input.checked)
+            .map((input) => input.value);
+          const orderCount = subjects.length;
+          const hasRegular = benefitInRange(date, "2026-08-20", "2026-09-23");
+          const hasSchool = benefitInRange(date, "2026-08-26", "2026-09-08");
+          const hasEnglish = subjects.includes("english");
+          const mainGiftCount = orderCount;
+          const subGiftCount = orderCount * 2;
+
+          benefitStatus.textContent = orderCount === 0
+            ? "请选择科目"
+            : hasSchool
+              ? "开学季叠加中"
+              : hasRegular
+                ? "仅常规加赠"
+                : "不在活动期";
+
+          const rows = [
+            {
+              active: hasRegular && orderCount > 0,
+              text: `9月常规加赠 N选${mainGiftCount} + 副礼包6选${subGiftCount}`,
+            },
+            {
+              active: hasSchool && orderCount > 0,
+              text: `开学季专属抽奖 3抽${orderCount}，100%中实物`,
+            },
+            {
+              active: hasSchool && hasEnglish,
+              text: "英语系统课额外赠《成为最强大脑》1本",
+            },
+          ];
+
+          const activeRows = rows.filter((row) => row.active);
+          benefitResult.innerHTML = activeRows.length
+            ? activeRows
+                .map(
+                  (row) => `
+            <div class="benefit-row is-hit">
+              <span>${row.text}</span>
+            </div>`
+                )
+                .join("")
+            : `
+            <div class="benefit-row is-muted">
+              <span>${orderCount ? "当前没有可领取权益。" : "请先选择至少一个下单科目。"}</span>
+            </div>`;
+        }
+
+        orderDateInput.addEventListener("input", renderBenefitResult);
+        orderSubjectInputs.forEach((input) => input.addEventListener("change", renderBenefitResult));
+        setDefaultOrderDate(orderDateInput);
+        renderBenefitResult();
+      }
+
       function mount(periodId) {
         mergePeriods();
         const period = periods.find((p) => p.id === periodId) || periods[0];
@@ -2090,6 +2251,7 @@
         bindCopyButtons();
         bindGiftImagePreviews(period);
         bindOpsHiddenFooter();
+        initGiftCalculator();
 
         document.getElementById("period-select").addEventListener("change", (e) => {
           const id = e.target.value;
