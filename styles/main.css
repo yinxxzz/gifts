@@ -642,6 +642,17 @@ html.is-embed .page {
   padding-right: 34px;
 }
 
+.september-tools {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.september-tools > .sales-board,
+.september-tools > .benefit-calculator {
+  margin-bottom: 0;
+}
+
 .sales-board,
 .benefit-calculator {
   position: relative;
@@ -1087,6 +1098,21 @@ html.is-embed .page {
   border-radius: 50%;
   background: #a3e635;
   box-shadow: 0 0 10px rgba(163, 230, 53, 0.75);
+}
+
+@media (min-width: 860px) {
+  .september-tools {
+    grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+    align-items: start;
+  }
+
+  .september-tools .sales-board-title {
+    font-size: 28px;
+  }
+
+  .september-tools .benefit-title {
+    font-size: 22px;
+  }
 }
 
 @keyframes lightRibbon {

@@ -10,7 +10,7 @@
     <link rel="icon" href="favicon.png?v=2" type="image/png" sizes="32x32" />
     <link rel="icon" href="favicon.svg?v=2" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="favicon.png?v=2" />
-    <link rel="stylesheet" href="styles/main.css?v=20260814-sales-tools" />
+    <link rel="stylesheet" href="styles/main.css?v=20260814-sales-tools-side-by-side" />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   </head>
@@ -1007,8 +1007,10 @@
       function renderSeptemberTools(period) {
         if (!shouldRenderSeptemberTools(period)) return "";
         return `
-          ${renderSeptemberSalesBoard()}
-          ${renderGiftCalculator()}`;
+          <div class="september-tools">
+            ${renderSeptemberSalesBoard()}
+            ${renderGiftCalculator()}
+          </div>`;
       }
 
       function renderPeriod(period) {
