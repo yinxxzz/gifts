@@ -958,7 +958,7 @@
                 搜索赠品
               </button>
               ${
-                period.id === "2026-618"
+                SALES_GUIDE_DOCS[period.id]
                   ? `<button type="button" class="search-gifts-btn" id="sales-guide-btn">活动说明</button>`
                   : ""
               }
@@ -1540,10 +1540,12 @@
       }
 
       const SALES_GUIDE_DOCS = {
+        "2026-09": "docs/开学季活动销售说明.md",
+        "2026-09-school": "docs/开学季活动销售说明.md",
         "2026-618": "docs/618活动销售说明.md",
       };
       /** 活动说明内容更新后改此版本，避免浏览器缓存旧 md */
-      const SALES_GUIDE_REV = "20260604-3";
+      const SALES_GUIDE_REV = "20260814-school-1";
 
       async function openSalesGuideModal(periodId) {
         const path = SALES_GUIDE_DOCS[periodId];
