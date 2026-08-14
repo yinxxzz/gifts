@@ -60,6 +60,7 @@
       let serverEdits = {};
       let shelfPollTimer = null;
       let currentPeriodId = null;
+      let benefitCalculatorState = null;
       const editorSaveTimers = new WeakMap();
 
       function parseRule(rule) {
@@ -2175,6 +2176,33 @@
         orderDateInput.value = today < minDate ? minDate : today > maxDate ? maxDate : today;
       }
 
+      function restoreBenefitCalculatorState(orderDateInput, orderSubjectInputs) {
+        if (!benefitCalculatorState) {
+          setDefaultOrderDate(orderDateInput);
+          benefitCalculatorState = {
+            date: orderDateInput.value,
+            subjects: orderSubjectInputs.filter((input) => input.checked).map((input) => input.value),
+          };
+          return;
+        }
+
+        const minDate = orderDateInput.min;
+        const maxDate = orderDateInput.max;
+        const savedDate = benefitCalculatorState.date || "";
+        orderDateInput.value = savedDate < minDate ? minDate : savedDate > maxDate ? maxDate : savedDate;
+        const savedSubjects = new Set(benefitCalculatorState.subjects || []);
+        orderSubjectInputs.forEach((input) => {
+          input.checked = savedSubjects.has(input.value);
+        });
+      }
+
+      function saveBenefitCalculatorState(orderDateInput, orderSubjectInputs) {
+        benefitCalculatorState = {
+          date: orderDateInput.value,
+          subjects: orderSubjectInputs.filter((input) => input.checked).map((input) => input.value),
+        };
+      }
+
       function initGiftCalculator() {
         const orderDateInput = document.getElementById("order-date");
         const benefitStatus = document.getElementById("benefit-status");
@@ -2187,6 +2215,7 @@
         }
 
         function renderBenefitResult() {
+          saveBenefitCalculatorState(orderDateInput, orderSubjectInputs);
           const date = orderDateInput.value;
           const subjects = orderSubjectInputs
             .filter((input) => input.checked)
@@ -2239,7 +2268,7 @@
 
         orderDateInput.addEventListener("input", renderBenefitResult);
         orderSubjectInputs.forEach((input) => input.addEventListener("change", renderBenefitResult));
-        setDefaultOrderDate(orderDateInput);
+        restoreBenefitCalculatorState(orderDateInput, orderSubjectInputs);
         renderBenefitResult();
       }
 
