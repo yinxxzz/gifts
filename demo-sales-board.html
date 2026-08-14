@@ -688,11 +688,12 @@
 
       .benefit-row span {
         color: #595959;
-        font-size: 12px;
+        font-size: 13px;
+        font-weight: 800;
         line-height: 1.45;
       }
 
-      .benefit-row.is-hit b {
+      .benefit-row.is-hit span {
         color: #1677ff;
       }
 
@@ -898,6 +899,8 @@
         const hasRegular = inRange(date, "2026-08-20", "2026-09-23");
         const hasSchool = inRange(date, "2026-08-26", "2026-09-08");
         const hasEnglish = subjects.includes("english");
+        const mainGiftCount = orderCount;
+        const subGiftCount = orderCount * 2;
 
         benefitStatus.textContent = orderCount === 0
           ? "请选择科目"
@@ -910,27 +913,23 @@
         const rows = [
           {
             active: hasRegular && orderCount > 0,
-            title: "9月常规加赠",
-            text: `已选${orderCount}科，9月常规加赠照常享有：开学主礼包4选1 + 开学副礼包6选2。`,
+            text: `9月常规加赠 N选${mainGiftCount} + 副礼包6选${subGiftCount}`,
             mutedText: orderCount ? "下单时间不在9月常规加赠期内。" : "请先选择至少一个下单科目。",
           },
           {
             active: hasSchool && orderCount > 0,
-            title: "开学季专属抽奖",
-            text: `已选${orderCount}科，可对应${orderCount}次抽奖机会；每次3抽1，100%中实物：斑马书包 / 美术大礼包 / 多功能升降阅读架。`,
+            text: `开学季专属抽奖 ${orderCount}次，3抽1，100%中实物`,
             mutedText: orderCount ? "当前日期不在开学季特别活动期内。" : "请先选择至少一个下单科目。",
           },
           {
             active: hasSchool && hasEnglish,
-            title: "英语系统课额外赠书",
-            text: "包含英语系统课，额外赠送《成为最强大脑》1本。",
+            text: "英语系统课额外赠《成为最强大脑》1本",
             mutedText: hasSchool ? "未选择英语系统课，不触发额外赠书。" : "当前日期不在开学季特别活动期内。",
           },
         ];
 
         benefitResult.innerHTML = rows.map((row) => `
           <div class="benefit-row ${row.active ? "is-hit" : "is-muted"}">
-            <b>${row.active ? "可获得：" : "未触发："}${row.title}</b>
             <span>${row.active ? row.text : row.mutedText}</span>
           </div>
         `).join("");
