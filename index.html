@@ -2241,6 +2241,10 @@
               text: `9月常规加赠 N选${mainGiftCount} + 副礼包6选${subGiftCount}`,
             },
             {
+              active: hasRegular && orderCount > 0,
+              text: `常规赠品可按单替换：AI学习机最多${orderCount}个（按实际选择）`,
+            },
+            {
               active: hasSchool && orderCount > 0,
               text: `开学季专属抽奖 3抽${orderCount}，100%中实物`,
             },
