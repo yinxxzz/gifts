@@ -918,25 +918,28 @@
           {
             active: hasRegular && orderCount > 0,
             text: `9月常规加赠 N选${mainGiftCount} + 副礼包6选${subGiftCount}`,
-            mutedText: orderCount ? "下单时间不在9月常规加赠期内。" : "请先选择至少一个下单科目。",
           },
           {
             active: hasSchool && orderCount > 0,
             text: `开学季专属抽奖 ${orderCount}次，3抽1，100%中实物`,
-            mutedText: orderCount ? "当前日期不在开学季特别活动期内。" : "请先选择至少一个下单科目。",
           },
           {
             active: hasSchool && hasEnglish,
             text: "英语系统课额外赠《成为最强大脑》1本",
-            mutedText: hasSchool ? "未选择英语系统课，不触发额外赠书。" : "当前日期不在开学季特别活动期内。",
           },
         ];
 
-        benefitResult.innerHTML = rows.map((row) => `
-          <div class="benefit-row ${row.active ? "is-hit" : "is-muted"}">
-            <span>${row.active ? row.text : row.mutedText}</span>
+        const activeRows = rows.filter((row) => row.active);
+
+        benefitResult.innerHTML = activeRows.length ? activeRows.map((row) => `
+          <div class="benefit-row is-hit">
+            <span>${row.text}</span>
           </div>
-        `).join("");
+        `).join("") : `
+          <div class="benefit-row is-muted">
+            <span>${orderCount ? "当前没有可领取权益。" : "请先选择至少一个下单科目。"}</span>
+          </div>
+        `;
       }
 
       orderDateInput.addEventListener("input", renderBenefitResult);
