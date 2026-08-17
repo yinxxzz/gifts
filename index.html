@@ -1006,10 +1006,10 @@
           </section>`;
       }
 
-      function renderSeptemberTools(period, idPrefix = "") {
+      function renderSeptemberTools(period, idPrefix = "", extraClass = "") {
         if (!shouldRenderSeptemberTools(period)) return "";
         return `
-          <div class="september-tools">
+          <div class="september-tools ${extraClass}">
             ${renderSeptemberSalesBoard()}
             ${renderGiftCalculator(idPrefix)}
           </div>`;
@@ -1071,7 +1071,6 @@
             >${escapeHtml(period.summary)}</div>
           </section>
 
-          ${renderSeptemberTools(period)}
           ${bundlesHtml}
           ${renderOpsHiddenFooter()}`;
       }
@@ -1665,7 +1664,7 @@
           if (typeof marked !== "undefined") {
             marked.setOptions({ breaks: true, gfm: true });
             const guideTools = periodId === "2026-09"
-              ? renderSeptemberTools({ id: "2026-09" }, "guide-")
+              ? renderSeptemberTools({ id: "2026-09" }, "guide-", "is-guide")
               : "";
             body.innerHTML = `${guideTools}<div class="sales-guide-prose">${marked.parse(md)}</div>`;
           } else {

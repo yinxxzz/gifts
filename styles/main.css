@@ -653,6 +653,11 @@ html.is-embed .page {
   margin-bottom: 0;
 }
 
+.september-tools.is-guide {
+  grid-template-columns: 1fr;
+  margin-bottom: 24px;
+}
+
 .sales-board,
 .benefit-calculator {
   position: relative;
