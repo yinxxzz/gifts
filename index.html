@@ -974,7 +974,8 @@
           </section>`;
       }
 
-      function renderGiftCalculator() {
+      function renderGiftCalculator(idPrefix = "") {
+        const id = (name) => `${idPrefix}${name}`;
         return `
           <section class="benefit-calculator" aria-label="赠品算一算">
             <div class="benefit-inner">
@@ -983,10 +984,10 @@
               </header>
               <div class="benefit-controls">
                 <div class="benefit-field">
-                  <label for="order-date">下单时间</label>
-                  <input id="order-date" type="date" min="2026-08-20" max="2026-09-23" />
+                  <label for="${id("order-date")}">下单时间</label>
+                  <input id="${id("order-date")}" type="date" min="2026-08-20" max="2026-09-23" />
                 </div>
-                <div class="benefit-field" id="order-subjects">
+                <div class="benefit-field" id="${id("order-subjects")}">
                   <label>下单科目</label>
                   <div class="subject-pills">
                     <label class="subject-pill"><input type="checkbox" value="english" checked /><span>英语</span></label>
@@ -999,18 +1000,18 @@
                   </div>
                 </div>
               </div>
-              <div class="benefit-badge" id="benefit-status">开学季叠加中</div>
-              <div class="benefit-result" id="benefit-result"></div>
+              <div class="benefit-badge" id="${id("benefit-status")}">开学季叠加中</div>
+              <div class="benefit-result" id="${id("benefit-result")}"></div>
             </div>
           </section>`;
       }
 
-      function renderSeptemberTools(period) {
+      function renderSeptemberTools(period, idPrefix = "") {
         if (!shouldRenderSeptemberTools(period)) return "";
         return `
           <div class="september-tools">
             ${renderSeptemberSalesBoard()}
-            ${renderGiftCalculator()}
+            ${renderGiftCalculator(idPrefix)}
           </div>`;
       }
 
@@ -1663,7 +1664,10 @@
           const md = await res.text();
           if (typeof marked !== "undefined") {
             marked.setOptions({ breaks: true, gfm: true });
-            body.innerHTML = `<div class="sales-guide-prose">${marked.parse(md)}</div>`;
+            const guideTools = periodId === "2026-09"
+              ? renderSeptemberTools({ id: "2026-09" }, "guide-")
+              : "";
+            body.innerHTML = `${guideTools}<div class="sales-guide-prose">${marked.parse(md)}</div>`;
           } else {
             body.innerHTML = `<pre class="sales-guide-fallback">${escapeHtml(md)}</pre>`;
           }
@@ -1682,6 +1686,9 @@
             if (!src || src.startsWith("http") || src.includes("?v=")) return;
             img.src = `${src}${src.includes("?") ? "&" : "?"}v=${SALES_GUIDE_REV}`;
           });
+          if (periodId === "2026-09") {
+            initGiftCalculator("guide-");
+          }
         } catch {
           body.innerHTML = '<p class="gift-search-empty">活动说明加载失败，请刷新后重试。</p>';
         }
@@ -2203,12 +2210,13 @@
         };
       }
 
-      function initGiftCalculator() {
-        const orderDateInput = document.getElementById("order-date");
-        const benefitStatus = document.getElementById("benefit-status");
-        const benefitResult = document.getElementById("benefit-result");
+      function initGiftCalculator(idPrefix = "") {
+        const id = (name) => `${idPrefix}${name}`;
+        const orderDateInput = document.getElementById(id("order-date"));
+        const benefitStatus = document.getElementById(id("benefit-status"));
+        const benefitResult = document.getElementById(id("benefit-result"));
         const orderSubjectInputs = [
-          ...document.querySelectorAll("#order-subjects input[type='checkbox']"),
+          ...document.querySelectorAll(`#${id("order-subjects")} input[type='checkbox']`),
         ];
         if (!orderDateInput || !benefitStatus || !benefitResult || !orderSubjectInputs.length) {
           return;
