@@ -88,16 +88,46 @@
 
       function sanitizePeriod(period) {
         if (!period || typeof period !== "object") return period;
+        if (period.title) period.title = plainText(period.title);
         if (period.summary) period.summary = plainText(period.summary);
         if (period.subtitle) period.subtitle = plainText(period.subtitle);
         for (const bundle of period.bundles || []) {
           if (bundle.name) bundle.name = plainText(bundle.name);
+          if (bundle.rule) bundle.rule = plainText(bundle.rule);
           if (bundle.salesScript != null) {
             bundle.salesScript = plainText(bundle.salesScript);
           }
           for (const gift of bundle.gifts || []) {
+            if (gift.name) gift.name = plainText(gift.name);
             if (gift.sellingPoints) {
               gift.sellingPoints = gift.sellingPoints.map(plainText);
+            }
+            if (Array.isArray(gift.includes)) {
+              gift.includes = gift.includes.map(plainText).filter(Boolean);
+            } else if (gift.includes != null) {
+              gift.includes = plainText(gift.includes);
+            }
+            if (gift.productInfo && typeof gift.productInfo === "object") {
+              if (Array.isArray(gift.productInfo)) {
+                gift.productInfo = gift.productInfo
+                  .map((item) => ({
+                    ...item,
+                    label: plainText(item?.label || ""),
+                    value: Array.isArray(item?.value)
+                      ? item.value.map(plainText).filter(Boolean)
+                      : plainText(item?.value || ""),
+                  }))
+                  .filter((item) => item.label && String(item.value || "").trim());
+              } else {
+                gift.productInfo = Object.fromEntries(
+                  Object.entries(gift.productInfo)
+                    .map(([label, value]) => [
+                      plainText(label),
+                      Array.isArray(value) ? value.map(plainText).filter(Boolean) : plainText(value),
+                    ])
+                    .filter(([label, value]) => label && String(value || "").trim())
+                );
+              }
             }
           }
         }
@@ -632,12 +662,20 @@
                 <p class="gift-includes-label">礼品清单</p>
                 <ul class="gift-includes-list">
                   ${listItems
-                    .map((item) => {
+                    .map((item, index) => {
                       const imgSrc = getIncludeImageSrc(periodId, gift.name, item);
                       const dataAttr = imgSrc
                         ? ` data-include-img="${escapeHtml(imgSrc)}"`
                         : "";
-                      return `<li class="gift-include-item"${dataAttr}><span>${escapeHtml(item)}</span></li>`;
+                      return `<li class="gift-include-item"${dataAttr}><span
+                        class="ops-editable"
+                        spellcheck="false"
+                        data-edit="gift-include"
+                        data-period-id="${periodId}"
+                        data-bundle-id="${bundleId}"
+                        data-gift-name="${escapeHtml(gift.name)}"
+                        data-include-index="${index}"
+                      >${escapeHtml(item)}</span></li>`;
                     })
                     .join("")}
                 </ul>
@@ -688,11 +726,12 @@
         return escapeHtml(plainText(value));
       }
 
-      function renderProductInfo(gift) {
+      function renderProductInfo(gift, periodId, bundleId) {
         const items = normalizeProductInfo(gift)
-          .map((item) => ({
+          .map((item, index) => ({
             label: item.label,
             value: normalizeProductInfoValue(item.value),
+            index,
           }))
           .filter((item) => item.label && !isPendingProductInfoText(item.label) && item.value);
         if (!items.length) return "";
@@ -703,10 +742,28 @@
                 <dl>
                   ${items
                     .map(
-                      (item) => `
+                    (item) => `
                   <div class="product-info-row">
-                    <dt>${escapeHtml(item.label)}</dt>
-                    <dd>${renderProductInfoValue(item.value)}</dd>
+                    <dt
+                      class="ops-editable"
+                      spellcheck="false"
+                      data-edit="product-info-label"
+                      data-period-id="${periodId}"
+                      data-bundle-id="${bundleId}"
+                      data-gift-name="${escapeHtml(gift.name)}"
+                      data-info-label="${escapeHtml(item.label)}"
+                      data-info-index="${item.index}"
+                    >${escapeHtml(item.label)}</dt>
+                    <dd
+                      class="ops-editable"
+                      spellcheck="false"
+                      data-edit="product-info-value"
+                      data-period-id="${periodId}"
+                      data-bundle-id="${bundleId}"
+                      data-gift-name="${escapeHtml(gift.name)}"
+                      data-info-label="${escapeHtml(item.label)}"
+                      data-info-index="${item.index}"
+                    >${renderProductInfoValue(item.value)}</dd>
                   </div>`
                     )
                     .join("")}
@@ -772,7 +829,14 @@
             <div class="gift-image">${imgHtml}</div>
             <div class="gift-body">
               <h3>
-                ${gift.name}
+                <span
+                  class="ops-editable"
+                  spellcheck="false"
+                  data-edit="gift-name"
+                  data-period-id="${periodId}"
+                  data-bundle-id="${bundleId}"
+                  data-gift-name="${escapeHtml(gift.name)}"
+                >${escapeHtml(gift.name)}</span>
                 ${gift.isNew ? '<span class="tag-new">新</span>' : ""}
                 ${highlighted ? '<span class="tag-push">主推</span>' : ""}
               </h3>
@@ -805,7 +869,7 @@
                   .join("")}
                 </ul>
               </div>
-              ${renderProductInfo(gift)}
+              ${renderProductInfo(gift, periodId, bundleId)}
               ${renderGiftIncludes(gift, periodId, bundleId)}
             </div>
           </article>`;
@@ -842,7 +906,13 @@
                   data-period-id="${periodId}"
                   data-bundle-id="${bundle.id}"
                 >${escapeHtml(bundle.name)}</h2>
-                <span class="bundle-rule">${bundle.rule}</span>
+                <span
+                  class="bundle-rule ops-editable"
+                  spellcheck="false"
+                  data-edit="bundle-rule"
+                  data-period-id="${periodId}"
+                  data-bundle-id="${bundle.id}"
+                >${escapeHtml(bundle.rule)}</span>
               </div>
               <button
                 type="button"
@@ -1022,7 +1092,12 @@
           <header class="header">
             <div class="header-top">
               <div>
-                <h1>${period.title}</h1>
+                <h1
+                  class="ops-editable"
+                  spellcheck="false"
+                  data-edit="period-title"
+                  data-period-id="${period.id}"
+                >${escapeHtml(period.title)}</h1>
                 <p
                   class="subtitle ops-editable"
                   spellcheck="false"
@@ -1144,6 +1219,52 @@
 
       function findGift(bundle, giftName) {
         return bundle.gifts.find((g) => g.name === giftName);
+      }
+
+      function replaceNameInList(list, oldName, newName) {
+        if (!Array.isArray(list)) return list;
+        return list.map((name) => (name === oldName ? newName : name));
+      }
+
+      function updateProductInfoLabel(gift, oldLabel, index, newLabel) {
+        if (!gift.productInfo || !newLabel) return false;
+        if (Array.isArray(gift.productInfo)) {
+          const item = gift.productInfo[index];
+          if (!item) return false;
+          item.label = newLabel;
+          return true;
+        }
+        if (typeof gift.productInfo === "object") {
+          const entries = Object.entries(gift.productInfo);
+          const entryIndex = entries.findIndex(([label]) => label === oldLabel);
+          const targetIndex = entryIndex >= 0 ? entryIndex : index;
+          if (!entries[targetIndex]) return false;
+          const [, value] = entries[targetIndex];
+          entries[targetIndex] = [newLabel, value];
+          gift.productInfo = Object.fromEntries(entries);
+          return true;
+        }
+        return false;
+      }
+
+      function updateProductInfoValue(gift, label, index, value) {
+        if (!gift.productInfo) return false;
+        if (Array.isArray(gift.productInfo)) {
+          const item = gift.productInfo[index];
+          if (!item) return false;
+          item.value = value;
+          return true;
+        }
+        if (typeof gift.productInfo === "object") {
+          const keys = Object.keys(gift.productInfo);
+          const key = Object.prototype.hasOwnProperty.call(gift.productInfo, label)
+            ? label
+            : keys[index];
+          if (!key) return false;
+          gift.productInfo[key] = value;
+          return true;
+        }
+        return false;
       }
 
       function bindTripleClickEdit(el, onActivate) {
@@ -2087,6 +2208,14 @@
 
         if (el.dataset.edit === "period-status") return null;
 
+        if (el.dataset.edit === "period-title") {
+          period.title = plainText(el.textContent) || period.title;
+          el.textContent = period.title;
+          const option = document.querySelector(`#period-select option[value="${period.id}"]`);
+          if (option) option.textContent = `${period.title}（${period.statusLabel}）`;
+          return period;
+        }
+
         if (el.dataset.edit === "summary") {
           period.summary = plainText(el.textContent);
           return period;
@@ -2102,11 +2231,64 @@
         const bundle = findBundle(periodId, el.dataset.bundleId);
         if (!bundle) return null;
 
+        if (el.dataset.edit === "bundle-rule") {
+          bundle.rule = plainText(el.textContent) || bundle.rule;
+          el.textContent = bundle.rule;
+          return period;
+        }
+
+        if (el.dataset.edit === "gift-name") {
+          const gift = findGift(bundle, el.dataset.giftName);
+          if (!gift) return null;
+          const oldName = gift.name;
+          const newName = plainText(el.textContent) || oldName;
+          gift.name = newName;
+          bundle.recommended = replaceNameInList(bundle.recommended, oldName, newName);
+          if (period.newItems) period.newItems = replaceNameInList(period.newItems, oldName, newName);
+          el.textContent = newName;
+          el.dataset.giftName = newName;
+          return period;
+        }
+
         if (el.dataset.edit === "selling-point") {
           const gift = findGift(bundle, el.dataset.giftName);
           if (!gift) return null;
           const idx = Number(el.dataset.pointIndex);
           gift.sellingPoints[idx] = plainText(el.textContent);
+          return period;
+        }
+
+        if (el.dataset.edit === "gift-include") {
+          const gift = findGift(bundle, el.dataset.giftName);
+          if (!gift) return null;
+          const idx = Number(el.dataset.includeIndex);
+          const nextValue = plainText(el.textContent);
+          const includes = resolveGiftIncludes(gift, periodId, bundle.id);
+          includes[idx] = nextValue;
+          gift.includes = includes.filter(Boolean);
+          el.textContent = nextValue;
+          return period;
+        }
+
+        if (el.dataset.edit === "product-info-label") {
+          const gift = findGift(bundle, el.dataset.giftName);
+          if (!gift) return null;
+          const oldLabel = el.dataset.infoLabel || "";
+          const idx = Number(el.dataset.infoIndex);
+          const newLabel = plainText(el.textContent) || oldLabel;
+          if (!updateProductInfoLabel(gift, oldLabel, idx, newLabel)) return null;
+          el.textContent = newLabel;
+          el.dataset.infoLabel = newLabel;
+          return period;
+        }
+
+        if (el.dataset.edit === "product-info-value") {
+          const gift = findGift(bundle, el.dataset.giftName);
+          if (!gift) return null;
+          const idx = Number(el.dataset.infoIndex);
+          const newValue = plainText(el.textContent);
+          if (!updateProductInfoValue(gift, el.dataset.infoLabel || "", idx, newValue)) return null;
+          el.textContent = newValue;
           return period;
         }
 
