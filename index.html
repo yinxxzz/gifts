@@ -2094,7 +2094,7 @@
 
         if (el.dataset.edit === "header-subline") {
           period.subtitle = plainText(el.textContent);
-          period.dateRange = "";
+          period.dateRange = period.subtitle;
           el.textContent = period.subtitle;
           return period;
         }
