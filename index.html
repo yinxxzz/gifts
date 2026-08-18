@@ -1430,6 +1430,7 @@
       }
 
       const ASSET_EXT = /\.(jpe?g|png|webp|gif|mp4|mov)$/i;
+      const PREVIEW_IMAGE_EXT = /\.(jpe?g|png|webp|gif)$/i;
 
       async function crawlPeriodAssets(periodId, subPath = "") {
         const dirUrl = `assets/${periodId}/${subPath}`;
@@ -1600,7 +1601,12 @@
         if (entry.image || baseGift?.image) explicit.push(entry.image || baseGift.image);
         if (Array.isArray(gallery)) explicit.push(...gallery);
 
-        const unique = [...new Set(explicit.filter(Boolean))];
+        const folderImages = explicit.length <= 1
+          ? (await crawlGiftAssets(entry))
+              .map((item) => item.url)
+              .filter((url) => PREVIEW_IMAGE_EXT.test(url))
+          : [];
+        const unique = [...new Set([...explicit, ...folderImages].filter(Boolean))];
         if (unique.length) return unique;
 
         return [];
