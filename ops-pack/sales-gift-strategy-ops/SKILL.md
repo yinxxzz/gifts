@@ -1,6 +1,6 @@
 ---
 name: sales-gift-strategy-ops
-description: 销售赠品策略静态页（sales-gift-strategy/）每月上新专用。用户提到赠品策略上新、新一期赠品、periods.json、改卖点话术、预览或上线 sales-gift-strategy 时使用。只涉及该 HTML 静态站，不涉及供应链仓库其他模块。
+description: 销售赠品策略页（sales-gift-strategy/）每月上新及图文包制作专用。用户提到赠品策略上新、新一期赠品、periods.json、打包上传、改卖点话术、预览或上线 sales-gift-strategy 时使用。只涉及该站点，不涉及供应链仓库其他模块。
 ---
 
 # 销售赠品策略页 · 独立 Skill
@@ -95,6 +95,31 @@ python3 -m http.server 8765
 页面上 **三击** 可微调；**三击只改本机浏览器，销售看不到**。定稿以 `data/periods.json` 文件为准。
 
 若有三击改动：页面 **⌘+Shift+E** 导出，用导出内容覆盖 `data/periods.json`。
+
+---
+
+## 给网站上传的图文包
+
+当用户说“打包给网站上传”“生成图文包”时，输出一个 ZIP，必须保留下面结构：
+
+```text
+赠品图文包.zip
+├── periods.json
+└── assets/
+    └── YYYY-MM/
+        └── 赠品名称/
+            ├── 赠品名称-01.jpg
+            └── 赠品名称-02.jpg
+```
+
+要求：
+
+- `periods.json` 可以只包含本次新增或更新的期次，不要为了上传而塞入无关旧期次。
+- 图片路径必须与 JSON 中的 `gifts[].image`、`gifts[].gallery` 一致，并以 `assets/` 开头。
+- ZIP 外层允许再套一层同名文件夹，网站会自动识别。
+- 图片使用 `.jpg`、`.jpeg`、`.png`、`.webp` 或 `.gif`。
+- 打包后提醒用户：进入网站，点击“上传图文包”，核对预览后确认上传。
+- 网站按期次 ID 新增或更新，不会清空其他期次；同 ID 会覆盖该期次的共享编辑版本。
 
 ---
 

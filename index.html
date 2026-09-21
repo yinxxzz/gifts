@@ -10,7 +10,7 @@
     <link rel="icon" href="favicon.png?v=2" type="image/png" sizes="32x32" />
     <link rel="icon" href="favicon.svg?v=2" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="favicon.png?v=2" />
-    <link rel="stylesheet" href="styles/main.css?v=20260814-sales-tools-side-by-side" />
+    <link rel="stylesheet" href="styles/main.css?v=20260921-content-package" />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   </head>
@@ -61,6 +61,7 @@
       let shelfPollTimer = null;
       let currentPeriodId = null;
       let benefitCalculatorState = null;
+      let contentPackageState = null;
       const editorSaveTimers = new WeakMap();
 
       function parseRule(rule) {
@@ -271,7 +272,12 @@
           saveEdits(edits);
         }
 
-        periods = basePeriods.map((p) => {
+        const baseIds = new Set(basePeriods.map((period) => period.id));
+        const importedPeriods = Object.entries(serverEdits)
+          .filter(([id, period]) => !id.endsWith("__meta") && !baseIds.has(id) && period?.id)
+          .map(([, period]) => structuredClone(period));
+
+        periods = [...basePeriods, ...importedPeriods].map((p) => {
           const overlay = serverEdits[p.id];
           if (!overlay) return structuredClone(p);
           const merged = sanitizePeriod(deepMerge(structuredClone(p), overlay));
@@ -1119,6 +1125,9 @@
               <button type="button" class="search-gifts-btn" id="search-gifts-btn">
                 搜索赠品
               </button>
+              <button type="button" class="search-gifts-btn" id="content-package-btn">
+                上传图文包
+              </button>
               ${
                 SALES_GUIDE_DOCS[period.id]
                   ? `<button type="button" class="search-gifts-btn" id="sales-guide-btn">活动说明</button>`
@@ -1160,6 +1169,205 @@
           </footer>`;
       }
 
+      function normalizePackagePeriods(payload) {
+        if (payload && Array.isArray(payload.periods)) return payload.periods;
+        if (payload && payload.id) return [payload];
+        if (Array.isArray(payload)) return payload;
+        throw new Error("periods.json 必须包含 periods 数组，或直接提供一个期次对象");
+      }
+
+      function packagePathParts(name) {
+        return String(name || "")
+          .replace(/\\/g, "/")
+          .split("/")
+          .filter(Boolean);
+      }
+
+      async function inspectContentPackage(file) {
+        if (!file || !/\.zip$/i.test(file.name)) {
+          throw new Error("请选择 ZIP 格式的图文包");
+        }
+        if (file.size > 120 * 1024 * 1024) {
+          throw new Error("图文包过大，压缩后不能超过 120MB");
+        }
+        if (typeof JSZip === "undefined") {
+          throw new Error("打包组件未加载，请刷新页面后重试");
+        }
+
+        const archive = await JSZip.loadAsync(file);
+        const files = Object.values(archive.files).filter((entry) => !entry.dir);
+        const manifests = files
+          .filter((entry) => {
+            const basename = packagePathParts(entry.name).at(-1)?.toLowerCase();
+            return basename === "period.json" || basename === "periods.json";
+          })
+          .sort((a, b) => packagePathParts(a.name).length - packagePathParts(b.name).length);
+        if (!manifests.length) {
+          throw new Error("压缩包里没有找到 periods.json 或 period.json");
+        }
+
+        let payload;
+        try {
+          payload = JSON.parse(await manifests[0].async("string"));
+        } catch {
+          throw new Error("periods.json 不是有效的 JSON");
+        }
+        const importedPeriods = normalizePackagePeriods(payload);
+        if (!importedPeriods.length) throw new Error("图文包里没有期次内容");
+
+        const seen = new Set();
+        const summaries = importedPeriods.map((period) => {
+          const id = String(period?.id || "").trim();
+          const title = String(period?.title || "").trim();
+          if (!/^[A-Za-z0-9._-]{1,80}$/.test(id)) throw new Error(`期次 ID 不合法：${id || "空"}`);
+          if (!title) throw new Error(`期次 ${id} 缺少标题`);
+          if (seen.has(id)) throw new Error(`期次 ID 重复：${id}`);
+          if (!Array.isArray(period.bundles) || !period.bundles.length) {
+            throw new Error(`期次 ${id} 至少需要一个礼包`);
+          }
+          seen.add(id);
+          return {
+            id,
+            title,
+            bundleCount: period.bundles.length,
+            giftCount: period.bundles.reduce(
+              (total, bundle) => total + (Array.isArray(bundle.gifts) ? bundle.gifts.length : 0),
+              0
+            ),
+            exists: periods.some((item) => item.id === id),
+          };
+        });
+        const assetCount = files.filter((entry) => {
+          const parts = packagePathParts(entry.name);
+          const assetIndex = parts.indexOf("assets");
+          return assetIndex >= 0 && /\.(jpe?g|png|webp|gif)$/i.test(parts.at(-1) || "");
+        }).length;
+        return { file, periods: summaries, assetCount };
+      }
+
+      function renderContentPackagePreview(state) {
+        const preview = document.getElementById("content-package-preview");
+        const submit = document.getElementById("content-package-submit");
+        if (!preview || !submit) return;
+        if (!state) {
+          preview.innerHTML = '<p class="content-package-placeholder">选择 ZIP 后，会先在这里核对内容。</p>';
+          submit.disabled = true;
+          return;
+        }
+        preview.innerHTML = `
+          <div class="content-package-file">${escapeHtml(state.file.name)}</div>
+          <p>共 ${state.periods.length} 个期次、${state.assetCount} 张图片</p>
+          <ul>
+            ${state.periods
+              .map(
+                (period) => `<li><strong>${escapeHtml(period.title)}</strong><span>${escapeHtml(period.id)} · ${period.bundleCount} 个礼包 · ${period.giftCount} 个赠品${period.exists ? " · 将更新" : " · 将新增"}</span></li>`
+              )
+              .join("")}
+          </ul>
+          <p class="content-package-warning">确认后只会新增或更新上述期次，不会清空其他期次。</p>`;
+        submit.disabled = false;
+      }
+
+      async function selectContentPackage(file) {
+        const preview = document.getElementById("content-package-preview");
+        const submit = document.getElementById("content-package-submit");
+        if (preview) preview.innerHTML = '<p class="content-package-placeholder">正在检查图文包…</p>';
+        if (submit) submit.disabled = true;
+        try {
+          contentPackageState = await inspectContentPackage(file);
+          renderContentPackagePreview(contentPackageState);
+        } catch (err) {
+          contentPackageState = null;
+          if (preview) preview.innerHTML = `<p class="content-package-error">${escapeHtml(err.message || "图文包读取失败")}</p>`;
+        }
+      }
+
+      function openContentPackageModal() {
+        ensureSearchModals();
+        const modal = document.getElementById("content-package-modal");
+        const input = document.getElementById("content-package-input");
+        if (!modal) return;
+        contentPackageState = null;
+        if (input) input.value = "";
+        renderContentPackagePreview(null);
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeContentPackageModal() {
+        const modal = document.getElementById("content-package-modal");
+        if (!modal || modal.hidden) return;
+        modal.hidden = true;
+        document.body.style.overflow = "";
+      }
+
+      function bindContentPackageModalEvents() {
+        if (document.body.dataset.contentPackageBound === "1") return;
+        document.body.dataset.contentPackageBound = "1";
+        const modal = document.getElementById("content-package-modal");
+        const input = document.getElementById("content-package-input");
+        const dropzone = document.getElementById("content-package-dropzone");
+        const choose = document.getElementById("content-package-choose");
+        const form = document.getElementById("content-package-form");
+        const submit = document.getElementById("content-package-submit");
+
+        document.getElementById("content-package-close").addEventListener("click", closeContentPackageModal);
+        document.getElementById("content-package-cancel").addEventListener("click", closeContentPackageModal);
+        document.getElementById("content-package-backdrop").addEventListener("click", closeContentPackageModal);
+        choose.addEventListener("click", () => input.click());
+        input.addEventListener("change", () => {
+          if (input.files?.[0]) selectContentPackage(input.files[0]);
+        });
+        ["dragenter", "dragover"].forEach((name) => {
+          dropzone.addEventListener(name, (event) => {
+            event.preventDefault();
+            dropzone.classList.add("is-dragging");
+          });
+        });
+        ["dragleave", "drop"].forEach((name) => {
+          dropzone.addEventListener(name, (event) => {
+            event.preventDefault();
+            dropzone.classList.remove("is-dragging");
+          });
+        });
+        dropzone.addEventListener("drop", (event) => {
+          const file = event.dataTransfer?.files?.[0];
+          if (file) selectContentPackage(file);
+        });
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!contentPackageState?.file) return;
+          const original = submit.textContent;
+          submit.disabled = true;
+          submit.textContent = "上传中…";
+          try {
+            const response = await fetch("/api/content-package", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/zip",
+                "X-Filename": encodeURIComponent(contentPackageState.file.name),
+              },
+              body: contentPackageState.file,
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || "图文包保存失败");
+            serverEdits = data.edits || serverEdits;
+            const importedId = data.periods?.[0]?.id || contentPackageState.periods[0]?.id;
+            closeContentPackageModal();
+            mergePeriods();
+            history.replaceState(null, "", `?period=${encodeURIComponent(importedId)}`);
+            activeBundleTabId = null;
+            mount(importedId);
+            window.alert(`上传完成：${data.periods?.length || 0} 个期次，${data.assetsCount || 0} 张图片。`);
+          } catch (err) {
+            window.alert(err.message || "图文包保存失败，请重试");
+          } finally {
+            submit.disabled = false;
+            submit.textContent = original;
+          }
+        });
+      }
+
       async function downloadBlob(blob, filename) {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
@@ -1184,6 +1392,10 @@
         const deployRes = await fetch("docs/同事部署说明.md");
         if (deployRes.ok) {
           skillFolder.file("同事部署说明.md", await deployRes.text());
+        }
+        const uploadRes = await fetch("docs/图文包上传说明.md");
+        if (uploadRes.ok) {
+          skillFolder.file("图文包上传说明.md", await uploadRes.text());
         }
         await downloadBlob(await zip.generateAsync({ type: "blob" }), "sales-gift-strategy-ops.zip");
       }
@@ -1746,12 +1958,36 @@
                 <button type="submit" class="btn-primary" id="gift-add-submit">保存</button>
               </div>
             </form>
+          </div>
+          <div id="content-package-modal" class="content-package-modal" hidden>
+            <div class="content-package-backdrop" id="content-package-backdrop"></div>
+            <form class="content-package-panel" id="content-package-form">
+              <div class="content-package-header">
+                <button type="button" class="gift-search-back-btn" id="content-package-close">← 返回</button>
+                <h2 class="content-package-title">上传图文包</h2>
+              </div>
+              <div class="content-package-body">
+                <div class="content-package-dropzone" id="content-package-dropzone">
+                  <input id="content-package-input" type="file" accept=".zip,application/zip" hidden />
+                  <p>把 ZIP 图文包拖到这里</p>
+                  <button type="button" id="content-package-choose">选择文件</button>
+                  <span>包内需包含 periods.json（或 period.json）和 assets 图片目录</span>
+                </div>
+                <div class="content-package-preview" id="content-package-preview"></div>
+                <p class="content-package-help">上传后，同事可继续在页面上三击文字修改；所有人的页面会自动同步。</p>
+              </div>
+              <div class="content-package-actions">
+                <button type="button" id="content-package-cancel">取消</button>
+                <button type="submit" class="btn-primary" id="content-package-submit" disabled>确认上传</button>
+              </div>
+            </form>
           </div>`
         );
 
         bindSearchModalEvents();
         bindSalesGuideModalEvents();
         bindGiftAddModalEvents();
+        bindContentPackageModalEvents();
       }
 
       const SALES_GUIDE_DOCS = {
@@ -2340,11 +2576,7 @@
       function exportJson() {
         mergePeriods();
         const payload = {
-          periods: basePeriods.map((p) => {
-            const overlay = serverEdits[p.id];
-            if (!overlay) return structuredClone(p);
-            return sanitizePeriod(deepMerge(structuredClone(p), overlay));
-          }),
+          periods: periods.map((period) => stripShelfFromPeriod(structuredClone(period))),
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         const a = document.createElement("a");
@@ -2492,6 +2724,10 @@
 
         document.getElementById("search-gifts-btn")?.addEventListener("click", () => {
           openSearchModal();
+        });
+
+        document.getElementById("content-package-btn")?.addEventListener("click", () => {
+          openContentPackageModal();
         });
 
         document.getElementById("sales-guide-btn")?.addEventListener("click", () => {
