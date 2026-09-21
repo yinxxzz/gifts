@@ -287,8 +287,27 @@
           }
           return merged;
         });
+        periods = periods
+          .map((period, index) => ({ period, index }))
+          .sort((a, b) => periodRecencyKey(b.period) - periodRecencyKey(a.period) || a.index - b.index)
+          .map(({ period }) => period);
         if (dirty) saveEdits(serverEdits);
         applyShelfOverridesToPeriods();
+      }
+
+      function periodRecencyKey(period) {
+        const id = String(period?.id || "");
+        const idMatch = id.match(/^(\d{4})-(\d{2})(?:$|-)/);
+        if (idMatch) {
+          const month = Number(idMatch[2]);
+          if (month >= 1 && month <= 12) return Number(idMatch[1]) * 100 + month;
+        }
+        const dateText = `${period?.subtitle || ""} ${period?.dateRange || ""}`;
+        const dateMatch = dateText.match(/(20\d{2})[-/.](\d{1,2})/);
+        if (dateMatch) return Number(dateMatch[1]) * 100 + Number(dateMatch[2]);
+        const eventMatch = id.match(/^(\d{4})-618/);
+        if (eventMatch) return Number(eventMatch[1]) * 100 + 6;
+        return 0;
       }
 
       async function loadShelfOverrides() {
