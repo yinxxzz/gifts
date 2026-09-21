@@ -8,6 +8,7 @@ import io
 import os
 import re
 import shutil
+import struct
 import tempfile
 import threading
 import zipfile
@@ -149,6 +150,31 @@ def _safe_zip_parts(name: str) -> list[str]:
     return parts
 
 
+def _zip_entry_name(item: zipfile.ZipInfo) -> str:
+    """Recover UTF-8 filenames from ZIP Unicode path metadata."""
+    extra = item.extra or b""
+    offset = 0
+    while offset + 4 <= len(extra):
+        header_id, data_size = struct.unpack_from("<HH", extra, offset)
+        offset += 4
+        data = extra[offset : offset + data_size]
+        offset += data_size
+        if header_id == 0x7075 and len(data) >= 6 and data[0] == 1:
+            try:
+                return data[5:].decode("utf-8")
+            except UnicodeDecodeError:
+                break
+
+    if not item.flag_bits & 0x800:
+        try:
+            recovered = item.filename.encode("cp437").decode("utf-8")
+            if recovered:
+                return recovered
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+    return item.filename
+
+
 def _normalize_period_payload(payload) -> list[dict]:
     if isinstance(payload, dict) and isinstance(payload.get("periods"), list):
         periods = payload["periods"]
@@ -218,7 +244,7 @@ def parse_content_package(package_bytes: bytes) -> tuple[list[dict], list[tuple[
         manifest_candidates = []
         assets = []
         for item in files:
-            parts = _safe_zip_parts(item.filename)
+            parts = _safe_zip_parts(_zip_entry_name(item))
             basename = parts[-1].lower()
             if basename in {"period.json", "periods.json"}:
                 manifest_candidates.append((len(parts), item))
