@@ -1125,9 +1125,6 @@
               <button type="button" class="search-gifts-btn" id="search-gifts-btn">
                 搜索赠品
               </button>
-              <button type="button" class="search-gifts-btn" id="content-package-btn">
-                上传图文包
-              </button>
               ${
                 SALES_GUIDE_DOCS[period.id]
                   ? `<button type="button" class="search-gifts-btn" id="sales-guide-btn">活动说明</button>`
@@ -1164,6 +1161,7 @@
           <footer class="ops-hidden-footer">
             <span class="ops-hidden-dots" id="ops-hidden-dots">···</span>
             <div class="ops-hidden-menu" id="ops-hidden-menu" hidden>
+              <button type="button" data-ops-action="upload">上传图文包</button>
               <button type="button" data-ops-download="skill">下载 Cursor Skill</button>
             </div>
           </footer>`;
@@ -1415,6 +1413,12 @@
             if (btn.dataset.opsDownload === "skill") await downloadOpsSkillZip();
             menu.hidden = true;
           });
+        });
+
+        menu.querySelector('[data-ops-action="upload"]')?.addEventListener("click", (e) => {
+          e.stopPropagation();
+          menu.hidden = true;
+          openContentPackageModal();
         });
 
         document.addEventListener("click", (e) => {
@@ -2724,10 +2728,6 @@
 
         document.getElementById("search-gifts-btn")?.addEventListener("click", () => {
           openSearchModal();
-        });
-
-        document.getElementById("content-package-btn")?.addEventListener("click", () => {
-          openContentPackageModal();
         });
 
         document.getElementById("sales-guide-btn")?.addEventListener("click", () => {
